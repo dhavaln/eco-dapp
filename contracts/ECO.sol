@@ -3,6 +3,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "./VestingManager.sol";
+import "./CompanyERC.sol";
 
 /** 
  * @title ECO
@@ -14,6 +15,7 @@ contract ECO {
     uint128 public totalCompanies;
 
     event CompanyAdded(string);
+    event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
 
     constructor(){
         _owner = msg.sender;
@@ -26,5 +28,14 @@ contract ECO {
         emit CompanyAdded(company);
 
         return true;
+    }
+
+    // Allows a company to deploy an ERC20 token through ECO contract
+    function createCompanyERC(string memory companyName, string memory tokenName, uint256 totalSupply) external returns (address) {
+        CompanyERC erc20 = new CompanyERC(msg.sender, companyName, tokenName, totalSupply);
+
+        emit CompanyERCTokenDeployed(tokenName, address(erc20));
+
+        return address(erc20);
     }
 }
