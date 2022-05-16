@@ -35,6 +35,8 @@ export class Dapp extends React.Component {
     this.initialState = {
       // The info of the test contract (i.e. It's Name)
       testContractData: undefined,
+      balance: undefined,
+
       // The user's address and balance
       selectedAddress: undefined,      
       networkError: undefined,
@@ -78,10 +80,11 @@ export class Dapp extends React.Component {
         <div className="row">
           <div className="col-12">
             <h1>
-              {this.state.testContractData.name}
+              Welcome to ECO - Employee Coin Ownership
             </h1>
             <p>
-              Welcome <b>{this.state.selectedAddress}</b>
+              Hello, <b>{this.state.selectedAddress}</b> <br/>
+              {/* You have {this.state.balance} tokens. */}
             </p>
           </div>
         </div>
@@ -133,7 +136,7 @@ export class Dapp extends React.Component {
     });
   }
 
-  _initialize(userAddress) {
+  _initialize(userAddress) {    
     // This method initializes the dapp
     console.log(userAddress);
 
@@ -162,9 +165,14 @@ export class Dapp extends React.Component {
 
   // This is added just for the testing purpose.
   _startPollingData() {
-    // this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
-    // // We run it once immediately so we don't have to wait for it
-    // this._updateBalance();
+    this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
+    // We run it once immediately so we don't have to wait for it
+    this._updateBalance();
+  }
+
+  async _updateBalance() {
+    // const balance = await this._testContract.balanceOf(this.state.selectedAddress);
+    // this.setState({ balance });
   }
 
   // Stop the data polling, added for testing purpose only.
