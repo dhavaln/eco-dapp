@@ -21,14 +21,17 @@ contract VestingManager {
     struct MemberAllotment {
         uint256 tokensAllotted;
         uint256 tokensTransferred;
-        uint256 transferOn;
+        uint256 transferOn; // Seconds in future
         bool isComplete;
+        bool isPaused;
     }    
 
     mapping(address => MemberAllotment) public allotments;
 
-    event MemberAdded(address to, uint256 tokens);
-    event MemberTokensVested(address to, uint256 tokens, bool isComplete);
+    event MemberAdded(address indexed to, uint256 tokens);
+    event MemberTokensVested(address indexed to, uint256 tokens, bool isComplete);
+    event MemberTokenAllotmentPaused(address indexed to);
+    event MemberTokenAllotmentResumed(address indexed to);
 
     constructor(string memory company, address walletAddress, address tokenAddress){
         owner = walletAddress;
@@ -43,14 +46,15 @@ contract VestingManager {
 
     function allocateTokens(address to, uint256 tokens, uint256 transferOn) external ownerOnly returns (bool) {        
         // Check ERC20 Token Balance
-        // Transfer the Tokens to current contract        
+        // Transfer the Tokens to current contract
 
         // Save the allotment into struct mapping
         allotments[to] = MemberAllotment({
             tokensAllotted: tokens, 
-            transferOn: block.timestamp + transferOn, 
+            transferOn: block.timestamp + transferOn,             
+            tokensTransferred: 0,
             isComplete: false, 
-            tokensTransferred: 0
+            isPaused: false
         });
 
         emit MemberAdded(to, tokens);
@@ -64,8 +68,34 @@ contract VestingManager {
     function transferTokens(address to, uint56 tokens) internal {
     }
 
+    function resumeAllotment(address to) external ownerOnly returns (bool) {
+        // Check member allotment
+        
+        MemberAllotment storage memberAllotment = allotments[to];
+        require(!memberAllotment.isComplete, "Allotment already completed.");
+        require(!memberAllotment.isPaused, "Allotment already paused.");
+
+        memberAllotment.isPaused = false;
+
+        emit MemberTokenAllotmentResumed(to);        
+        return true;
+    }
+
+    function pauseAllotment(address to) external ownerOnly returns (bool) {
+        // Check member allotment
+        
+        MemberAllotment storage memberAllotment = allotments[to];
+        require(!memberAllotment.isComplete, "Allotment already completed.");
+        require(!memberAllotment.isPaused, "Allotment already paused.");
+
+        memberAllotment.isPaused = true;
+
+        emit MemberTokenAllotmentPaused(to);        
+        return true;
+    }
+
     function releaseTokens(address to) external ownerOnly returns (bool) {
-        require(msg.sender == owner, "You are not the company owner.");
+        // Check member allotment
         
         MemberAllotment storage memberAllotment = allotments[to];
         require(!memberAllotment.isComplete, "Allotment already completed.");
@@ -77,7 +107,7 @@ contract VestingManager {
 
             emit MemberTokensVested(to, memberAllotment.tokensTransferred, memberAllotment.isComplete);
         }else{
-            revert("Wait until the vesting time.");
+            revert("Tokens are still within the vesting period. Please check the vesting schedule.");
         }
 
         return true;
