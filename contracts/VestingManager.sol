@@ -71,16 +71,16 @@ contract VestingManager {
     // This way we can build any kind of custom schedule
     // All the input params will be pre-calculated from UI side and validated in the function    
     function allocateTokens(address to, uint256 tokens, uint256[] memory tokenAllotment, uint256[] memory transferSchedule) external ownerOnly returns (bool) {        
-        // Check ERC20 Token Balance        
-        // Transfer the Tokens to current contract        
+        require(tokenAllotment.length == transferSchedule.length, "Token allotment and schedule length is not matching.");
 
-        // Check ERC20 Token Balance        
+        // Check ERC20 Token Balance
         // Transfer the Tokens to current contract
+        
         MemberAllotment storage _lot = allotments[to];
         _lot.totalTokensAllotted = 0; // total vesting tokens for entire schedule
         _lot.totalTokensTransferred = 0;
         _lot.isComplete= false;
-        _lot.isPaused= false;        
+        _lot.isPaused= false;
         _lot.tokensAlloted = tokenAllotment;
         _lot.transferSchedule = transferSchedule;
 
@@ -138,6 +138,7 @@ contract VestingManager {
         require(!memberAllotment.isComplete, "Allotment already completed.");
         require(!memberAllotment.isPaused, "Allotment is paused.");
         
+        // Any tokens released in this call!!
         bool isReleased = false;
 
         // This is a simple transfer. This will be replaced with custom schedule for simplicity.
@@ -167,7 +168,7 @@ contract VestingManager {
             }            
         }        
 
-        // If nothing release, then could be timing issue
+        // If nothing released, then throw timing error.
         if(!isReleased){            
             revert("Tokens are still within the vesting period. Please check the vesting schedule.");            
         }
