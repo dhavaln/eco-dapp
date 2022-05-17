@@ -28,7 +28,7 @@ contract VestingManager {
         // Make sure the tokensAlloted total is 100% and length of both arrays are same
         uint256[] tokensAlloted;
         uint256[] transferSchedule;        
-    }    
+    }
 
     // Keep all member allotments and also the reference in array for easy iteration
     mapping(address => MemberAllotment) public allotments;
@@ -36,6 +36,7 @@ contract VestingManager {
 
     event MemberAdded(address indexed to, uint256 tokens);
     event MemberTokensVested(address indexed to, uint256 tokens, bool isComplete);
+    event MemberVestingComplete(address indexed to, uint256 tokens);
     event MemberTokenAllotmentPaused(address indexed to);
     event MemberTokenAllotmentResumed(address indexed to);
 
@@ -71,27 +72,20 @@ contract VestingManager {
     // All the input params will be pre-calculated from UI side and validated in the function    
     function allocateTokens(address to, uint256 tokens, uint256[] memory tokenAllotment, uint256[] memory transferSchedule) external ownerOnly returns (bool) {        
         // Check ERC20 Token Balance        
+        // Transfer the Tokens to current contract        
+
+        // Check ERC20 Token Balance        
         // Transfer the Tokens to current contract
         MemberAllotment storage _lot = allotments[to];
         _lot.totalTokensAllotted = 0; // total vesting tokens for entire schedule
         _lot.totalTokensTransferred = 0;
         _lot.isComplete= false;
         _lot.isPaused= false;        
-        _lot.tokensAlloted = new uint256[](tokenAllotment.length);
-        // _lot.transferSchedule = new uint256[](transferSchedule.length);
-
-        // Direct assignment is not working
-        // _lot.tokensAlloted = tokenAllotment; 
-        // _lot.transferSchedule = transferSchedule;
+        _lot.tokensAlloted = tokenAllotment;
+        _lot.transferSchedule = transferSchedule;
 
         for(uint8 i = 0; i < tokenAllotment.length; i++){            
-            _lot.totalTokensAllotted += tokenAllotment[i];
-
-            // Value copy from one array to another array not working
-            _lot.tokensAlloted[i] = tokenAllotment[i];
-
-            // Pushing values to the array is also not working
-            _lot.transferSchedule.push(transferSchedule[i]);
+            _lot.totalTokensAllotted += tokenAllotment[i];            
         }
 
         if(allotments[to].totalTokensAllotted != tokens){
@@ -144,6 +138,8 @@ contract VestingManager {
         require(!memberAllotment.isComplete, "Allotment already completed.");
         require(!memberAllotment.isPaused, "Allotment is paused.");
         
+        bool isReleased = false;
+
         // This is a simple transfer. This will be replaced with custom schedule for simplicity.
         for(uint8 i = 0; i < memberAllotment.transferSchedule.length ; i++){
             // Check for previously vesting tokens
@@ -155,22 +151,36 @@ contract VestingManager {
                     memberAllotment.totalTokensAllotted -= memberAllotment.tokensAlloted[i];
                     memberAllotment.totalTokensTransferred += memberAllotment.tokensAlloted[i];
                     memberAllotment.tokensAlloted[i] = 0;
+                    isReleased = true;
 
                     // Check if all tokens are transferred
                     if(memberAllotment.totalTokensAllotted == 0){
                         memberAllotment.isComplete = true;
 
                         // Emit full vesting event
-                    }
-
-                    emit MemberTokensVested(to, memberAllotment.totalTokensTransferred, memberAllotment.isComplete);
-                }else{
-                    revert("Tokens are still within the vesting period. Please check the vesting schedule.");
+                        emit MemberVestingComplete(to, memberAllotment.totalTokensTransferred);
+                    }else{
+                        // Emit partial vesting event
+                        emit MemberTokensVested(to, memberAllotment.totalTokensTransferred, memberAllotment.isComplete);
+                    }                    
                 }
             }            
         }        
 
+        // If nothing release, then could be timing issue
+        if(!isReleased){            
+            revert("Tokens are still within the vesting period. Please check the vesting schedule.");            
+        }
+
         return true;
+    }
+
+    function getAllotmentFor(address to) public view returns (MemberAllotment memory) {
+        return allotments[to];
+    }
+
+    function getAllotment() external view returns (MemberAllotment memory) {
+        return getAllotmentFor(msg.sender);
     }
 
     function getAllotedMembers() external view returns (address[] memory) {
