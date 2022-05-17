@@ -17,6 +17,9 @@ contract ECO {
     address[] allCompanies; 
     uint128 public totalCompanies;
     
+    // Store ERC20 token address for a company token
+    mapping(string => address) public companyERC20;
+
     event CompanyAdded(string);
     event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
 
@@ -38,6 +41,8 @@ contract ECO {
     function createCompanyERC(string memory companyName, string memory tokenName, uint256 totalSupply) external returns (address) {
         CompanyERC erc20 = new CompanyERC(msg.sender, companyName, tokenName, totalSupply);
 
+        companyERC20[tokenName] = address(erc20);
+
         emit CompanyERCTokenDeployed(tokenName, address(erc20));
 
         return address(erc20);
@@ -46,4 +51,8 @@ contract ECO {
     function getAllCompanies() external view returns (address[] memory) {
         return allCompanies;
     }
+
+    function getCompanyERC20Address(string memory tokenName) external view returns (address) {
+        return companyERC20[tokenName];
+    }    
 }

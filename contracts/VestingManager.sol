@@ -2,6 +2,8 @@
 
 pragma solidity >=0.8.0 <0.9.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /** 
  * @title VestingManager
  * @dev This contract holds the company and employee token allocations
@@ -13,7 +15,8 @@ contract VestingManager {
 
     // ERC20 Token address
     address public companyERC20;
-
+    IERC20 public _companyERC20;
+    
     // This is the kill switch to kind of enable/disable the working of Vesting
     bool public isActive;
 
@@ -45,6 +48,8 @@ contract VestingManager {
         companyName = company;
         companyERC20 = tokenAddress;
         isActive = true;
+
+        _companyERC20 = IERC20(tokenAddress);
     }
 
     modifier ownerOnly {
@@ -53,7 +58,7 @@ contract VestingManager {
     }
 
     modifier isVestingActive {
-        require(isActive == true, "Vesting plan is inactive");
+        require(isActive == true, "Vesting plan is inactive.");
         _;
     }
 
@@ -73,8 +78,9 @@ contract VestingManager {
     function allocateTokens(address to, uint256 tokens, uint256[] memory tokenAllotment, uint256[] memory transferSchedule) external ownerOnly returns (bool) {        
         require(tokenAllotment.length == transferSchedule.length, "Token allotment and schedule length is not matching.");
 
-        // Check ERC20 Token Balance
         // Transfer the Tokens to current contract
+        uint256 balanceTokens = _companyERC20.balanceOf(address(this));
+        require(balanceTokens >= tokens, "Not enough tokens allocated to Vesting Manager. Make sure you are the owner of your ERC20 tokens.");
         
         MemberAllotment storage _lot = allotments[to];
         _lot.totalTokensAllotted = 0; // total vesting tokens for entire schedule
@@ -99,7 +105,7 @@ contract VestingManager {
         return true;
     }
 
-    function checkERCTokenBalance(uint256 forTokens) internal {        
+    function checkERCTokenBalance(uint256 forTokens) internal {
     }
 
     function transferTokens(address to, uint56 tokens) internal {
@@ -149,6 +155,10 @@ contract VestingManager {
                 // Check for the current vested tokens
                 if(block.timestamp > memberAllotment.transferSchedule[i]){
                     
+                    // Trasnfer tokens from VestingContract to Member address
+                    bool _success = _companyERC20.transfer(to, memberAllotment.tokensAlloted[i]);
+                    require(_success, "Unable to transfer tokens to Vesting Account.");
+
                     memberAllotment.totalTokensAllotted -= memberAllotment.tokensAlloted[i];
                     memberAllotment.totalTokensTransferred += memberAllotment.tokensAlloted[i];
                     memberAllotment.tokensAlloted[i] = 0;

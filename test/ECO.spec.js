@@ -25,22 +25,10 @@ describe("ECO Tests", function () {
     before("Deploy ECO master contract", async () => {
       const accounts = await ethers.getSigners();
 
-      mainAcc = accounts[0];
-      companyAAcc = accounts[1];
-      companyAERC = accounts[2];      
-      memberAAcc = accounts[3];      
-
-      companyBAcc = accounts[4];
-      memberBAcc = accounts[5];
-
-      // console.log('main address', mainAcc.address);
-      // console.log('company A wallet', companyAAcc.address);
-      // console.log('company A ERC20', companyAERC.address);
-      // console.log('member A wallet', memberAAcc.address);
+      mainAcc = accounts[0];      
+      companyAAcc = accounts[1];      
+      memberAAcc = accounts[2];      
       
-      // console.log('company B wallet', companyBAcc.address);
-      // console.log('member B wallet', memberBAcc.address);
-
       const ECO = await ethers.getContractFactory("ECO");
       
       ecoMaster = await ECO.deploy();
@@ -50,7 +38,7 @@ describe("ECO Tests", function () {
     describe("Company tests", function () {
       it("signup company A", async function () {
         await expect(
-          await ecoMaster.connect(companyAAcc).createCompany("appgambit", companyAERC.address)
+          await ecoMaster.connect(companyAAcc).createCompany("appgambit", companyAERC)
         ).to.emit(ecoMaster, "CompanyAdded");
 
         await expect(
@@ -69,7 +57,7 @@ describe("ECO Tests", function () {
       });
 
       it("allocate company A vesting tokens to member", async function(){
-        const waitTime = 2; // seconds 
+        const waitTime = 5; // seconds 
         const tokensToTransfer = 1000;
 
         address = await ecoMaster.connect(mainAcc).companies("appgambit")
@@ -89,22 +77,17 @@ describe("ECO Tests", function () {
       });
 
       it('should wait for vesting time', async function(){
-        await delay(3 * 1000);
+        await delay(6 * 1000);
       });
 
-      it("test vesting schedule", async function() {        
-
+      it("test vesting schedule", async function() {
         address = await ecoMaster.connect(mainAcc).companies("appgambit")
         const VestingManager = await ethers.getContractFactory("VestingManager");
         const vestingManager = await VestingManager.attach(address);
         
         await expect(vestingManager.connect(companyAAcc).releaseTokens(memberAAcc.address))
         .to.emit(vestingManager, "MemberTokensVested")
-        .withArgs(memberAAcc.address, 500, false);
-
-        let allotment = await vestingManager.connect(memberAAcc).getAllotment();
-        console.log('member current release');
-        console.log(allotment);
+        .withArgs(memberAAcc.address, 500, false);        
       });
 
       it("let member check the status of his allotment", async function(){
@@ -113,8 +96,6 @@ describe("ECO Tests", function () {
         const vestingManager = await VestingManager.attach(address);
 
         let allotment = await vestingManager.connect(memberAAcc).getAllotment();
-        console.log('member allotment status');
-        console.log(allotment);
         expect(allotment.totalTokensAllotted).equal(500);
         expect(allotment.totalTokensTransferred).equal(500);
         expect(allotment.isComplete).equal(false);
@@ -130,9 +111,17 @@ describe("ECO Tests", function () {
       });
 
       it("create ERC20 token for the company B", async function() {
+        await expect(
+          await ecoMaster.connect(companyAAcc).createCompanyERC("apple", "APP", 1000000)
+        ).to.emit(ecoMaster, "CompanyERCTokenDeployed");
+
+        let tokenAddress = await ecoMaster.connect(companyAAcc).getCompanyERC20Address("GOG");
+        console.log(tokenAddress);
+        await expect(tokenAddress).not.equal(null);
       });
 
       it("signup company B with newly deployed ERC20 token", async function() {
+
       });
 
       it("add two member allocation in company B", async function() {
