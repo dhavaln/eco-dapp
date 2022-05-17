@@ -23,22 +23,27 @@ describe("ECO Tests", function () {
       mainAcc = accounts[0];
       companyAAcc = accounts[1];
       companyAERC = accounts[2];      
-      memberAAcc = accounts[5];      
+      memberAAcc = accounts[3];      
+
+      companyBAcc = accounts[4];
+      memberBAcc = accounts[5];
 
       console.log('main address', mainAcc.address);
       console.log('company A wallet', companyAAcc.address);
       console.log('company A ERC20', companyAERC.address);
       console.log('member A wallet', memberAAcc.address);
       
+      console.log('company B wallet', companyBAcc.address);
+      console.log('member B wallet', memberBAcc.address);
+
       const ECO = await ethers.getContractFactory("ECO");
       
-
       ecoMaster = await ECO.deploy();
       await ecoMaster.deployed();      
     });
 
     describe("Company tests", function () {
-      it("signup first company", async function () {
+      it("signup company A", async function () {
         await expect(
           await ecoMaster.connect(companyAAcc).createCompany("appgambit", companyAERC.address)
         ).to.emit(ecoMaster, "CompanyAdded");
@@ -48,7 +53,7 @@ describe("ECO Tests", function () {
         ).to.equal(1);
       });
 
-      it("validate company vesting contract deployed", async function () {
+      it("validate company A vesting contract deployed", async function () {
         address = await ecoMaster.connect(mainAcc).companies("appgambit")
         const VestingManager = await ethers.getContractFactory("VestingManager");
         const vestingManager = await VestingManager.attach(address);
@@ -58,23 +63,29 @@ describe("ECO Tests", function () {
         ).to.equal("appgambit");        
       });
 
-      it("allocate vesting tokens to member", async function(){
-        const waitTime = 10; // seconds 
+      it("allocate company A vesting tokens to member", async function(){
+        const waitTime = 3000; // seconds 
         const tokensToTransfer = 1000;
 
         address = await ecoMaster.connect(mainAcc).companies("appgambit")
         const VestingManager = await ethers.getContractFactory("VestingManager");
         const vestingManager = await VestingManager.attach(address);
 
-        await vestingManager.connect(companyAAcc).allocateTokens(memberAAcc.address, tokensToTransfer, waitTime);
+        await vestingManager.connect(companyAAcc).allocateTokens(
+          memberAAcc.address, 
+          tokensToTransfer, 
+          [tokensToTransfer/2, tokensToTransfer/2], 
+          [Date.now() + waitTime, Date.now() + (waitTime * 2) ]
+        );
 
-        let allotment = await vestingManager.connect(companyAAcc).allotments(memberAAcc.address);
-        expect(allotment.tokensAllotted).equal(tokensToTransfer);
+        let allotment = await vestingManager.connect(companyAAcc).allotments(memberAAcc.address);        
+        console.log(allotment.totalTokensAllotted, allotment.tokensAlloted, allotment.transferSchedule);
+        expect(allotment.totalTokensAllotted).equal(tokensToTransfer);
         expect(allotment.isComplete).equal(false);
       });
 
       it('should wait for vesting time', async function(){
-        await delay(12 * 1000);
+        await delay(5 * 1000);
       });
 
       it("test vesting schedule", async function() {
@@ -90,6 +101,25 @@ describe("ECO Tests", function () {
         expect(allotment.tokensAllotted).equal(0);
         expect(allotment.tokensTransferred).equal(tokensToTransfer);
         expect(allotment.isComplete).equal(true);
+      });
+
+      it("validate total members allocated in company A", async function(){
+        address = await ecoMaster.connect(mainAcc).companies("appgambit")
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(address);
+
+        let allMembers = await vestingManager.connect(companyAAcc).getAllotedMembers();
+        expect(allMembers.length).to.equal(1);
+      });
+
+      it("create ERC20 token for the company B", async function() {
+      });
+
+      it("signup company B with newly deployed ERC20 token", async function() {
+      });
+
+      it("add two member allocation in company B", async function() {
+
       });
     });
 });

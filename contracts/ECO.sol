@@ -11,9 +11,12 @@ import "./CompanyERC.sol";
  */
 contract ECO {
     address _owner;
+    
+    // Store company vesting contracts
     mapping(string => VestingManager) public companies;
+    address[] allCompanies; 
     uint128 public totalCompanies;
-
+    
     event CompanyAdded(string);
     event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
 
@@ -23,6 +26,7 @@ contract ECO {
 
     function createCompany(string memory company, address tokenAddress) external returns (bool) {
         companies[company] = new VestingManager(company, msg.sender, tokenAddress);
+        allCompanies.push(address(companies[company]));
         totalCompanies++;
 
         emit CompanyAdded(company);
@@ -37,5 +41,9 @@ contract ECO {
         emit CompanyERCTokenDeployed(tokenName, address(erc20));
 
         return address(erc20);
+    }
+
+    function getAllCompanies() external view returns (address[] memory) {
+        return allCompanies;
     }
 }
