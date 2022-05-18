@@ -78,6 +78,8 @@ contract VestingManager {
     function allocateTokens(address to, uint256 tokens, uint256[] memory tokenAllotment, uint256[] memory transferSchedule) external ownerOnly returns (bool) {        
         require(tokenAllotment.length == transferSchedule.length, "Token allotment and schedule length is not matching.");
 
+        // In case of allowance, there is a possibility that the Company can spend other tokens
+        // In case of transfer, the tokens are already reserved and can not be spent on anywhere else
         // Transfer the Tokens to current contract
         uint256 balanceTokens = _companyERC20.balanceOf(address(this));
         require(balanceTokens >= tokens, "Not enough tokens allocated to Vesting Manager. Make sure you are the owner of your ERC20 tokens.");

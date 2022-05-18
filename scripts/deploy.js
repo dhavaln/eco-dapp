@@ -19,17 +19,17 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const TestContract = await ethers.getContractFactory("TestContract");
-  const testContract = await TestContract.deploy();
-  await testContract.deployed();
+  const ECO = await ethers.getContractFactory("ECO");
+  const ecoContract = await ECO.deploy();
+  await ecoContract.deployed();
 
-  console.log("TestContract deployed address:", testContract.address);
+  console.log("ECO deployed address:", ecoContract.address);
 
   // We also save the contract's artifacts and address in the frontend directory
-  saveFrontendFiles(testContract);
+  saveFrontendFiles(ecoContract);
 }
 
-function saveFrontendFiles(testContract) {
+function saveFrontendFiles(ecoContract) {
   const fs = require("fs");
   const contractsDir = __dirname + "/../frontend/src/contracts";
 
@@ -39,14 +39,14 @@ function saveFrontendFiles(testContract) {
 
   fs.writeFileSync(
     contractsDir + "/contract-address.json",
-    JSON.stringify({ TestContract: testContract.address }, undefined, 2)
+    JSON.stringify({ ECOContract: ecoContract.address }, undefined, 2)
   );
 
-  const TestContractArtifact = artifacts.readArtifactSync("TestContract");
+  const ECOContractArtifact = artifacts.readArtifactSync("ECOContract");
 
   fs.writeFileSync(
-    contractsDir + "/TestContract.json",
-    JSON.stringify(TestContractArtifact, null, 2)
+    contractsDir + "/ECOContract.json",
+    JSON.stringify(ECOContractArtifact, null, 2)
   );
 }
 
