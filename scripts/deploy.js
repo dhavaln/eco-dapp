@@ -43,10 +43,22 @@ function saveFrontendFiles(ecoContract) {
   );
 
   const ECOContractArtifact = artifacts.readArtifactSync("ECO");
+  const CompanyERCArtifact = artifacts.readArtifactSync("CompanyERC");
+  const VestingManagerArtifact = artifacts.readArtifactSync("VestingManager");
 
   fs.writeFileSync(
     contractsDir + "/ECOContract.json",
     JSON.stringify(ECOContractArtifact, null, 2)
+  );
+
+  fs.writeFileSync(
+    contractsDir + "/CompanyERC.json",
+    JSON.stringify(CompanyERCArtifact, null, 2)
+  );
+
+  fs.writeFileSync(
+    contractsDir + "/VestingManager.json",
+    JSON.stringify(VestingManagerArtifact, null, 2)
   );
 }
 

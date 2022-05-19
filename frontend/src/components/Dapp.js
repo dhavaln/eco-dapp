@@ -5,6 +5,9 @@ import { ethers } from "ethers";
 
 // Import Contract ABIs add chain address
 import ECO from "../contracts/ECOContract.json";
+import CompanyERC from "../contracts/CompanyERC.json";
+import VestingManager from "../contracts/VestingManager.json";
+
 import contractAddress from "../contracts/contract-address.json";
 
 // UI Components
@@ -32,8 +35,8 @@ export class Dapp extends React.Component {
     // We store multiple things in Dapp's state.
     this.initialState = {
       // Company VestingManager
-      vestingManager: undefined,
-      val: -1,
+      vestingManager: undefined,      
+      hasERC20: false,
 
       // The info of the test contract (i.e. It's Name)
       testContractData: undefined,
@@ -94,45 +97,54 @@ export class Dapp extends React.Component {
         <div className="row">
           <div className="col-12">
             <h1>
-              Welcome to ECO - Employee Coin Ownership
-            </h1>
-            <p>
-              Hello, <b>{this.state.selectedAddress}</b> 
-              <br/>
-            </p>
-            <hr/>
-            <p>
-              Total Companies: {this.state.allCompanies ? this.state.allCompanies.length : 'FAILED TO LOAD'}
-              <br/>
-              Val: {this.state.val}
-              <br/>
+              ECO - Employee Coin Ownership
+            </h1>                      
 
-              <button
-                className="btn btn-warning"
-                type="button"
-                onClick={this.createVestingManager}
-              >
-                Create Your VestingManager
-              </button>
-              <span>  </span>
-              <button
-                className="btn btn-warning"
-                type="button"
-                onClick={()=>this.createERC20Token()}
-              >
-                Create Your ERC20 Token
-              </button> 
-
-               <button
-                className="btn btn-warning"
-                type="button"
-                onClick={()=>this.incVal()}
-              >
-                Increment Value
-              </button>              
-            </p>
+            <div className="row">
+              <div className="col">
+                Your Wallet: <b>...{this.state.selectedAddress.substr(this.state.selectedAddress.length - 5)}</b> 
+              </div>
+              <div className="col text-right">
+                Total Wallets under ECO: <b>{this.state.allCompanies ? this.state.allCompanies.length : '0'}</b>
+              </div>
+            </div>              
           </div>
         </div>
+
+        <hr/>
+
+        <div className="container">
+          <div className="card-deck mb-3 text-center">
+              <div className="card mb-6 box-shadow">
+                <div className="card-header">
+                  <h4 className="my-0 font-weight-normal">Vesting Wallet</h4>
+                </div>
+                <div className="card-body">
+                  <ul className="list-unstyled mt-3 mb-4">
+                    <li>We can help you setup a Blockchain-based secure and periodic token transfers to your employees and contributors.</li>                  
+                  </ul>
+                  <button type="button" className="btn btn-lg btn-block btn-primary" onClick={this.createVestingManager}>Create a Wallet</button>
+                </div>
+              </div>
+
+              <div className="card mb-6 box-shadow">
+                <div className="card-header">                  
+                  <h4 className="my-0 font-weight-normal">{ this.state.hasERC20 ? 'Your Tokens' : 'Don\'t have Tokens'}</h4>
+                </div>
+                <div className="card-body">
+                  <ul className="list-unstyled mt-3 mb-4">
+                    {
+                      !this.state.hasERC20 
+                        ? <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>  
+                        : <li>We see you already have your company tokens: <b>{ this.state.erc20 }</b></li> 
+                    }
+                  </ul>
+
+                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.createERC20Token()}>Create Tokens</button> : '' }
+                </div>
+              </div>
+            </div>
+          </div>
       </div>
     );
   }
@@ -210,9 +222,9 @@ export class Dapp extends React.Component {
 
   // This is added just for the testing purpose.
   _startPollingData() {
-    this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
-    // We run it once immediately so we don't have to wait for it
-    this._updateBalance();
+    // this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
+    // // We run it once immediately so we don't have to wait for it
+    // this._updateBalance();
   }
 
   async _updateBalance() {
@@ -228,13 +240,19 @@ export class Dapp extends React.Component {
 
   async _getContractData() {
     let allCompanies = await this._eco.getAllCompanies();
-    let val = (await this._eco.getVal()).toString();
+    let erc20 = await this._eco.getCompanyERC20Address("APPG");
+
+    let hasERC20 = false;
+    if(erc20 != 0x0000000000000000000000000000000000000000){
+      hasERC20 = true;      
+    }
     
     const name = "test-name";
     this.setState({ 
       testContractData: { name },
       allCompanies,
-      val
+      hasERC20,
+      erc20
     });
   }  
 
