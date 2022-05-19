@@ -23,6 +23,8 @@ contract ECO {
     event CompanyAdded(string);
     event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
 
+    uint128 _val;
+
     constructor(){
         _owner = msg.sender;
     }
@@ -54,5 +56,14 @@ contract ECO {
 
     function getCompanyERC20Address(string memory tokenName) external view returns (address) {
         return companyERC20[tokenName];
-    }    
+    }
+
+    function incVal() external returns (uint128) {
+        _val++;
+        return _val;
+    }
+
+    function getVal() external view returns (uint128) {
+        return _val;
+    }
 }

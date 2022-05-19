@@ -42,7 +42,7 @@ function saveFrontendFiles(ecoContract) {
     JSON.stringify({ ECOContract: ecoContract.address }, undefined, 2)
   );
 
-  const ECOContractArtifact = artifacts.readArtifactSync("ECOContract");
+  const ECOContractArtifact = artifacts.readArtifactSync("ECO");
 
   fs.writeFileSync(
     contractsDir + "/ECOContract.json",

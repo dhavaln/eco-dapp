@@ -4,15 +4,13 @@ import React from "react";
 import { ethers } from "ethers";
 
 // Import Contract ABIs add chain address
-import TestContract from "../contracts/TestContract.json";
+import ECO from "../contracts/ECOContract.json";
 import contractAddress from "../contracts/contract-address.json";
 
 // UI Components
 import { NoWalletDetected } from "./NoWalletDetected";
 import { ConnectWallet } from "./ConnectWallet";
 import { Loading } from "./Loading";
-import { TransactionErrorMessage } from "./TransactionErrorMessage";
-import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 
 // This is the Hardhat Network id, you might change it in the hardhat.config.js.
 // If you are using MetaMask, be sure to change the Network id to 1337.
@@ -33,6 +31,10 @@ export class Dapp extends React.Component {
 
     // We store multiple things in Dapp's state.
     this.initialState = {
+      // Company VestingManager
+      vestingManager: undefined,
+      val: -1,
+
       // The info of the test contract (i.e. It's Name)
       testContractData: undefined,
       balance: undefined,
@@ -45,6 +47,18 @@ export class Dapp extends React.Component {
     this.state = this.initialState;
   }
 
+  async createVestingManager(){
+
+  }
+
+  createERC20Token = async()=>{
+    await this._eco.createCompanyERC("APPGAMBIT", "APPG", 9999999);
+  }
+
+  incVal = async() => {
+    await this._eco.functions.incVal();
+  }
+  
   render() {
     // Ethereum wallets inject the window.ethereum object. If it hasn't been
     // injected, we instruct the user to install MetaMask.
@@ -83,8 +97,39 @@ export class Dapp extends React.Component {
               Welcome to ECO - Employee Coin Ownership
             </h1>
             <p>
-              Hello, <b>{this.state.selectedAddress}</b> <br/>
-              {/* You have {this.state.balance} tokens. */}
+              Hello, <b>{this.state.selectedAddress}</b> 
+              <br/>
+            </p>
+            <hr/>
+            <p>
+              Total Companies: {this.state.allCompanies ? this.state.allCompanies.length : 'FAILED TO LOAD'}
+              <br/>
+              Val: {this.state.val}
+              <br/>
+
+              <button
+                className="btn btn-warning"
+                type="button"
+                onClick={this.createVestingManager}
+              >
+                Create Your VestingManager
+              </button>
+              <span>  </span>
+              <button
+                className="btn btn-warning"
+                type="button"
+                onClick={()=>this.createERC20Token()}
+              >
+                Create Your ERC20 Token
+              </button> 
+
+               <button
+                className="btn btn-warning"
+                type="button"
+                onClick={()=>this.incVal()}
+              >
+                Increment Value
+              </button>              
             </p>
           </div>
         </div>
@@ -155,10 +200,10 @@ export class Dapp extends React.Component {
     // We first initialize ethers by creating a provider using window.ethereum
     this._provider = new ethers.providers.Web3Provider(window.ethereum);
 
-    // Then, we initialize the contract using that provider and the contract's artifact.
-    this._testContract = new ethers.Contract(
-      contractAddress.TestContract,
-      TestContract.abi,
+    // Then, we initialize the contract using that provider and the contract's artifact.    
+    this._eco = new ethers.Contract(
+      contractAddress.ECOContract,
+      ECO.abi,
       this._provider.getSigner(0)
     );
   }
@@ -182,8 +227,15 @@ export class Dapp extends React.Component {
   }
 
   async _getContractData() {
-    const name = await this._testContract.name();    
-    this.setState({ testContractData: { name } });
+    let allCompanies = await this._eco.getAllCompanies();
+    let val = (await this._eco.getVal()).toString();
+    
+    const name = "test-name";
+    this.setState({ 
+      testContractData: { name },
+      allCompanies,
+      val
+    });
   }  
 
   // This method just clears part of the state.
