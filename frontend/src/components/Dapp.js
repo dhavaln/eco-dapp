@@ -130,15 +130,20 @@ export class Dapp extends React.Component {
               <div className="card mb-6 box-shadow">
                 <div className="card-header">                  
                   <h4 className="my-0 font-weight-normal">{ this.state.hasERC20 ? 'Your Tokens' : 'Don\'t have Tokens'}</h4>
-                </div>
-                <div className="card-body">
-                  <ul className="list-unstyled mt-3 mb-4">
-                    {
-                      !this.state.hasERC20 
-                        ? <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>  
-                        : <li>We see you already have your company tokens: <b>{ this.state.erc20 }</b></li> 
-                    }
-                  </ul>
+                </div>              
+                <div className="card-body">                
+                  {
+                    !this.state.hasERC20 
+                      ? <ul className="list-unstyled mt-3 mb-4"> 
+                          <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>
+                        </ul>
+                      : <ul className="list-unstyled mt-3 mb-4"> 
+                          <li>We see you already have your company tokens: <b>{ this.state.erc20 }</b></li>
+                          <li>&nbsp;</li>
+                          <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>                          
+                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>                          
+                        </ul>
+                  }                  
 
                   { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.createERC20Token()}>Create Tokens</button> : '' }
                 </div>
@@ -244,7 +249,18 @@ export class Dapp extends React.Component {
 
     let hasERC20 = false;
     if(erc20 != 0x0000000000000000000000000000000000000000){
-      hasERC20 = true;      
+      hasERC20 = true;
+
+      this._erc20 = new ethers.Contract(
+        erc20,
+        CompanyERC.abi,
+        this._provider.getSigner(0)
+      );
+
+      this.state.ercCompany = await this._erc20.name();
+      this.state.ercSymbol = await this._erc20.symbol();
+      this.state.ercTotalSupply = (await this._erc20.totalSupply()).toString();
+      this.state.ercBalance = (await this._erc20.balanceOf( this.state.selectedAddress )).toString();
     }
     
     const name = "test-name";
