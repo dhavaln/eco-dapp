@@ -22,6 +22,7 @@ import CreateERC20Modal from "./CreateERC20Modal";
 import CreateVestingManagerModal from "./CreateVestingManagerModal";
 import AddWalletMemberModal from "./AddWalletMemberModal";
 import TokanTransferModal from "./TokanTransferModal";
+import MessageModal from "./MessageModal";
 
 // This is the Hardhat Network id, you might change it in the hardhat.config.js.
 // If you are using MetaMask, be sure to change the Network id to 1337.
@@ -60,7 +61,8 @@ export class Dapp extends React.Component {
       showERC20Modal: false,
       showVestingManagerModal: false,
       showAddMemberModal: false,
-      showTokenTransferModal: false
+      showTokenTransferModal: false,
+      showMessageModal: false
     };
 
     this.state = this.initialState;
@@ -94,6 +96,13 @@ export class Dapp extends React.Component {
   addMemberInVesting = async ({ address, totalTokens, transferOn }) => {
     // await this._vestingWallet.allocateTokens()
     console.log(address, totalTokens, transferOn);
+    if(!address || totalTokens <= 0) return;
+
+    let transferOnEpoch = new Date(transferOn).getTime() / 1000;
+    if(transferOnEpoch <= (Date.now()/1000)) return;
+
+    console.log('ready to add member');
+    await this._vestingWallet.allocateTokens( address, totalTokens, [totalTokens], [transferOnEpoch]);
 
     this.setState({
       showAddMemberModal: false
@@ -111,6 +120,22 @@ export class Dapp extends React.Component {
     this.setState({
       showTokenTransferModal: false
     });
+  }
+
+  releaseVestedTokens = async ( address ) => {
+    console.log(address);
+
+    try{
+      await this._vestingWallet.releaseTokens( address );
+    }catch(e){
+      this.setState({
+        messageTitle: 'Transaction Error',
+        messageText: e.data.data.message,
+        showMessageModal: true
+      });
+
+      console.log(e.data.data.message);
+    }
   }
 
   showAddMember = (isShow) => {
@@ -134,6 +159,12 @@ export class Dapp extends React.Component {
   showTokenTransfer = (isShow) => {    
     this.setState({
       showTokenTransferModal: isShow
+    });
+  }
+
+  showMessageModal = (isShow) => {    
+    this.setState({
+      showMessageModal: isShow
     });
   }
 
@@ -180,6 +211,7 @@ export class Dapp extends React.Component {
         <CreateVestingManagerModal name={ this.state.ercCompany } erc20Address={this.state.erc20} show={this.state.showVestingManagerModal} onClose={this.showVestingManager} onCreate={this.createVestingManager} />
         <AddWalletMemberModal show={this.state.showAddMemberModal} onClose={this.showAddMember} onCreate={ this.addMemberInVesting } />
         <TokanTransferModal show={this.state.showTokenTransferModal} onClose={this.showTokanTransfer} onCreate={ this.initTokenTransfer} />
+        <MessageModal show={this.state.showMessageModal} title={ this.state.messageTitle} message={ this.state.messageText} onClose={this.showMessageModal}/>
 
         <div className="container">          
           <div className="card-deck mb-3 text-center">
@@ -210,13 +242,20 @@ export class Dapp extends React.Component {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            {/* <td scope="col">
-                              <WalletAddress address={ this.state.vestingWalletAddr } label={"Wallet"}/><span className="badge badge-primary">Active</span><br/>
-                              Tokens Alloted: <b>1,000,000</b><br/>, Tokens Transferred: <b>5,00,000</b><br/>
-                              Next Release: 22 May 2022<br/>
-                            </td> */}
-                          </tr>
+                            { 
+                              this.state.vestingMembersDetail.map(( member) => {
+                                return <tr>
+                                    { <td scope="col" >
+                                        <p>
+                                        <WalletAddress address={member.address} label={ "Wallet Address" }/> ({ !member.isComplete ? "ACTIVE" : "COMPLETED"}) <br/>
+                                        Tokens Alloted: <b>{member.totalTokensAllotted}</b>, Tokens Transferred: <b>{member.totalTokensTransferred}</b><br/>
+                                        <span style={{color: "green"}}>Next Release: <b>{ member.nextRelease.toDateString() }</b></span><br/>
+                                        </p>
+                                        <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release Vested Tokens</button>
+                                    </td> }
+                                  </tr>
+                              })
+                            }
                         </tbody>
                       </table>
                     : ''
@@ -386,7 +425,32 @@ export class Dapp extends React.Component {
         this._provider.getSigner(0)
       );
 
-      this.state.vestingMembers = await this._vestingWallet.getAllotedMembers();
+      this.state.vestingMembers = await this._vestingWallet.getAllotedMembers();      
+
+      this.state.vestingMembersDetail = await Promise.all(this.state.vestingMembers.map(async (member) => {
+        let detail = await this._vestingWallet.getAllotmentFor( member );
+
+        let nextRelease;
+
+        detail[4].forEach( (val, index) => {
+          if(val > 0 && !nextRelease){
+            nextRelease = new Date(detail[5] * 1000);
+          }
+        });
+
+        return {
+          address: member,
+          isComplete: detail[0],
+          isPaused: detail[1],
+          totalTokensAllotted: detail[2].toString(),
+          totalTokensTransferred: detail[3].toString(),
+          tokensAlloted: detail[4],
+          transferSchedule: detail[5],
+          nextRelease
+        }
+      }));
+      console.log(this.state.vestingMembersDetail);
+
       this.state.vestingActive = await this._vestingWallet.isActive();
       erc20 = await this._vestingWallet.companyERC20();
       hasERC20 = true;
