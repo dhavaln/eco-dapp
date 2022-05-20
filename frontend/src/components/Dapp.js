@@ -21,6 +21,7 @@ import { ECOHeader } from "./ECOHeader";
 import CreateERC20Modal from "./CreateERC20Modal";
 import CreateVestingManagerModal from "./CreateVestingManagerModal";
 import AddWalletMemberModal from "./AddWalletMemberModal";
+import TokanTransferModal from "./TokanTransferModal";
 
 // This is the Hardhat Network id, you might change it in the hardhat.config.js.
 // If you are using MetaMask, be sure to change the Network id to 1337.
@@ -58,7 +59,8 @@ export class Dapp extends React.Component {
 
       showERC20Modal: false,
       showVestingManagerModal: false,
-      showAddMemberModal: false
+      showAddMemberModal: false,
+      showTokenTransferModal: false
     };
 
     this.state = this.initialState;
@@ -98,8 +100,17 @@ export class Dapp extends React.Component {
     })
   }
 
-  transferERC20Tokens = async () => {
+  initTokenTransfer = async ({ tokens }) => {
+    if(tokens <= 0) return;
+    if(tokens > this.state.ercBalance) return;
 
+    console.log(tokens);
+    
+    await this._erc20.transfer( this.state.vestingWalletAddr, tokens);
+
+    this.setState({
+      showTokenTransferModal: false
+    });
   }
 
   showAddMember = (isShow) => {
@@ -117,6 +128,12 @@ export class Dapp extends React.Component {
   showCreateTokenPopup = (isShow) => {    
     this.setState({
       showERC20Modal: isShow
+    });
+  }
+
+  showTokenTransfer = (isShow) => {    
+    this.setState({
+      showTokenTransferModal: isShow
     });
   }
 
@@ -162,6 +179,7 @@ export class Dapp extends React.Component {
         <CreateERC20Modal show={this.state.showERC20Modal} onClose={this.showCreateTokenPopup} onCreate={ this.createERC20Token }/>
         <CreateVestingManagerModal name={ this.state.ercCompany } erc20Address={this.state.erc20} show={this.state.showVestingManagerModal} onClose={this.showVestingManager} onCreate={this.createVestingManager} />
         <AddWalletMemberModal show={this.state.showAddMemberModal} onClose={this.showAddMember} onCreate={ this.addMemberInVesting } />
+        <TokanTransferModal show={this.state.showTokenTransferModal} onClose={this.showTokanTransfer} onCreate={ this.initTokenTransfer} />
 
         <div className="container">          
           <div className="card-deck mb-3 text-center">
@@ -230,7 +248,7 @@ export class Dapp extends React.Component {
                   }                  
 
                   { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showCreateTokenPopup(true)}>Create Tokens</button> : '' }
-                  { this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.transferERC20Tokens()}>Transfer Tokens to Wallet</button> : '' }
+                  { this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showTokenTransfer(true)}>Transfer Tokens to Wallet</button> : '' }
                 </div>
               </div>
             </div>
@@ -353,7 +371,7 @@ export class Dapp extends React.Component {
     this.state.hasVestingWallet = false;
     this.state.vestingWalletAddr = 0x0000000000000000000000000000000000000000;
     this._vestingWallet = undefined;
-    
+
     // Reaplce this to find VestingManager for the current address
     let vestingWalletAddr = await this._eco.companies( this.state.selectedAddress );
     console.log('vesting wallet address', vestingWalletAddr);
@@ -386,6 +404,8 @@ export class Dapp extends React.Component {
 
       this.state.ercCompany = await this._erc20.name();
       this.state.ercSymbol = await this._erc20.symbol();
+
+      console.log(await this._erc20.decimals());
       this.state.ercTotalSupply = (await this._erc20.totalSupply()).toString();
       this.state.ercBalance = (await this._erc20.balanceOf( this.state.selectedAddress )).toString();      
 
