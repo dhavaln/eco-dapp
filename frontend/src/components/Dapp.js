@@ -62,14 +62,27 @@ export class Dapp extends React.Component {
       showVestingManagerModal: false,
       showAddMemberModal: false,
       showTokenTransferModal: false,
-      showMessageModal: false
+      showMessageModal: false,
+
+      tokenSymbol: undefined
     };
 
     this.state = this.initialState;
   }
 
-  createVestingManager = async ({name, erc20Address}) => {
-    if(!this.state.erc20) return;
+  onCreate = () => {
+    this.props.onCreate({...this.state});
+  }
+
+  onChange =(fname) =>(event) => {
+      const{value}=event.target;
+
+      this.setState({
+          [fname]:value
+      });
+  }
+
+  createVestingManager = async ({name, erc20Address}) => {    
     if(!name || !erc20Address) return;
 
     console.log(name, erc20Address);
@@ -156,6 +169,12 @@ export class Dapp extends React.Component {
     });
   }
 
+  showTokanTransfer = (isShow) => {
+    this.setState({
+      showTokenTransferModal: isShow
+    })
+  };
+
   showTokenTransfer = (isShow) => {    
     this.setState({
       showTokenTransferModal: isShow
@@ -166,6 +185,33 @@ export class Dapp extends React.Component {
     this.setState({
       showMessageModal: isShow
     });
+  }
+
+  loadTokenAddress = async () => {
+    console.log(this.state.tokenSymbol);
+    if(!this.state.tokenSymbol) return;
+
+    let erc20 = await this._eco.getCompanyERC20Address(this.state.tokenSymbol);
+    
+    if(erc20 != 0x0000000000000000000000000000000000000000){
+      this._erc20 = new ethers.Contract(
+        ethers.utils.getAddress(erc20),
+        // IERC.abi // I can't access name() and symbol() with this
+        CompanyERC.abi,
+        this._provider.getSigner(0)
+      );
+        
+      this.state.ercCompany = await this._erc20.name();
+      this.state.ercSymbol = await this._erc20.symbol();
+      
+      this.setState({
+        foundERC20: `Wallet Address: ${erc20}`
+      });
+    }else{
+      this.setState({
+        foundERC20: 'Could not find any token for this symbol.'
+      });
+    }
   }
 
   render() {
@@ -270,7 +316,7 @@ export class Dapp extends React.Component {
                 <div className="card-header">                  
                   <h4 className="my-0 font-weight-normal">{ this.state.hasERC20 ? 'Your Tokens' : 'Don\'t have Tokens'}</h4>
                 </div>              
-                <div className="card-body">                
+                <div className="card-body">
                   {
                     !this.state.hasERC20 
                       ? <ul className="list-unstyled mt-3 mb-4"> 
@@ -287,6 +333,29 @@ export class Dapp extends React.Component {
                   }                  
 
                   { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showCreateTokenPopup(true)}>Create Tokens</button> : '' }
+
+                  { !this.state.hasERC20 ? <hr/> : ''}
+
+                  {
+                    !this.state.hasERC20 
+                      ? <div>
+                          <ul className="list-unstyled mt-3 mb-4"> 
+                            <li>Already deployed your tokens? Enter your Token Symbol to check.</li>
+                          </ul>
+
+                          <form>
+                            <div className="form-group">
+                                <input type="text" className="form-control" id="tokenSymbol" aria-describedby="tokenSymbol" placeholder="Enter your Token symbol" value={ this.state.tokenSymbol } onChange={ this.onChange('tokenSymbol') } />
+                            </div>
+                            <div className="form-group">
+                              { this.state.foundERC20 ? this.state.foundERC20 : ''}
+                            </div>
+                          </form>
+                        </div> : ''
+                  }
+                  
+                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-warning" onClick={()=>this.loadTokenAddress()}>Check Token</button> : '' }
+
                   { this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showTokenTransfer(true)}>Transfer Tokens to Wallet</button> : '' }
                 </div>
               </div>
@@ -454,8 +523,8 @@ export class Dapp extends React.Component {
       this.state.vestingActive = await this._vestingWallet.isActive();
       erc20 = await this._vestingWallet.companyERC20();
       hasERC20 = true;
-    }
-    
+    }     
+
     if(erc20 != 0x0000000000000000000000000000000000000000){
       hasERC20 = true;
 
@@ -468,8 +537,7 @@ export class Dapp extends React.Component {
 
       this.state.ercCompany = await this._erc20.name();
       this.state.ercSymbol = await this._erc20.symbol();
-
-      console.log(await this._erc20.decimals());
+      
       this.state.ercTotalSupply = (await this._erc20.totalSupply()).toString();
       this.state.ercBalance = (await this._erc20.balanceOf( this.state.selectedAddress )).toString();      
 
