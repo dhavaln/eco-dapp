@@ -46,6 +46,8 @@ export class Dapp extends React.Component {
       hasERC20: false,
       hasVestingWallet: false,
 
+      vestingWalletTokenBalance: 0,
+
       // The info of the test contract (i.e. It's Name)
       testContractData: undefined,
       balance: undefined,
@@ -220,8 +222,10 @@ export class Dapp extends React.Component {
                       : <ul className="list-unstyled mt-3 mb-4">                        
                           <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
                           <li>&nbsp;</li>
-                          <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>                          
-                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>                          
+                          <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>
+                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>
+                          <li style={{color: "red"}}>VestingWallet Balance: <b>{ this.state.vestingWalletTokenBalance }</b></li>
+                          
                         </ul>
                   }                  
 
@@ -338,11 +342,12 @@ export class Dapp extends React.Component {
   }
 
   async _getContractData() {    
+    
     let allCompanies = await this._eco.getAllCompanies();
     console.log('all companies', allCompanies);
 
     // Replace this to find ERC20 token based on selected address
-    let erc20 = undefined;
+    let erc20 = 0x0000000000000000000000000000000000000000;
     let hasERC20 = false;
 
     // Reaplce this to find VestingManager for the current address
@@ -379,6 +384,8 @@ export class Dapp extends React.Component {
       this.state.ercSymbol = await this._erc20.symbol();
       this.state.ercTotalSupply = (await this._erc20.totalSupply()).toString();
       this.state.ercBalance = (await this._erc20.balanceOf( this.state.selectedAddress )).toString();      
+
+      this.state.vestingWalletTokenBalance = (await this._erc20.balanceOf( this.state.vestingWalletAddr )).toString();
     }
     
     const name = "test-name";

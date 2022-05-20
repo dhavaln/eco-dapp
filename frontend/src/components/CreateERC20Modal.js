@@ -46,8 +46,7 @@ class CreateERC20Modal extends React.Component {
                             <input type="text" className="form-control" id="tokenSymbol" aria-describedby="tokenSymbol" placeholder="Symbol" value={ this.state.symbol } onChange={ this.onChange('symbol') } />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="tokenSupply">Total Supply</label>
-            totalSupply: 999999
+                            <label htmlFor="tokenSupply">Total Supply</label>            
                             <input type="text" className="form-control" id="tokenSupply" aria-describedby="tokenSupply" placeholder="Total tokens" value={ this.state.totalSupply } onChange={ this.onChange('totalSupply') }/>
                         </div>
                     </form>
