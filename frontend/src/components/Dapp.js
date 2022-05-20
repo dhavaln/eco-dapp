@@ -350,6 +350,10 @@ export class Dapp extends React.Component {
     let erc20 = 0x0000000000000000000000000000000000000000;
     let hasERC20 = false;
 
+    this.state.hasVestingWallet = false;
+    this.state.vestingWalletAddr = 0x0000000000000000000000000000000000000000;
+    this._vestingWallet = undefined;
+    
     // Reaplce this to find VestingManager for the current address
     let vestingWalletAddr = await this._eco.companies( this.state.selectedAddress );
     console.log('vesting wallet address', vestingWalletAddr);
