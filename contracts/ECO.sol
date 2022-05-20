@@ -13,38 +13,44 @@ contract ECO {
     address _owner;
     
     // Store company vesting contracts
-    mapping(string => VestingManager) public companies;
+    mapping(address => VestingManager) public companies;
     address[] allCompanies; 
     uint128 public totalCompanies;
     
     // Store ERC20 token address for a company token
     mapping(string => address) public companyERC20;
 
-    event CompanyAdded(string);
+    event VestingWalletAdded(string);
     event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
-
-    uint128 _val;
 
     constructor(){
         _owner = msg.sender;
     }
 
     function createCompany(string memory company, address tokenAddress) external returns (bool) {
-        companies[company] = new VestingManager(company, msg.sender, tokenAddress);
-        allCompanies.push(address(companies[company]));
+        // Check if VestingManager wallet already exist or not
+        // require(companies[msg.sender].isWalletAvailable() == false, "Vesting wallet already exist.");
+
+        // Create a Vesting Wallet for the callee wallet
+        companies[msg.sender] = new VestingManager(company, msg.sender, tokenAddress);
+        allCompanies.push(address(companies[msg.sender]));
         totalCompanies++;
 
-        emit CompanyAdded(company);
+        // Emit VestingWallet Added Event
+        emit VestingWalletAdded(company);
 
         return true;
     }
 
     // Allows a company to deploy an ERC20 token through ECO contract
     function createCompanyERC(string memory companyName, string memory tokenName, uint256 totalSupply) external returns (address) {
-        CompanyERC erc20 = new CompanyERC(msg.sender, companyName, tokenName, totalSupply);
+        // Check if ERC20 token already exist or not
+        require(companyERC20[tokenName] == 0x0000000000000000000000000000000000000000, "Company ERC20 tokens already exist.");
 
+        CompanyERC erc20 = new CompanyERC(msg.sender, companyName, tokenName, totalSupply);
         companyERC20[tokenName] = address(erc20);
 
+        // Emit Company ERC20 Token Deployed Event
         emit CompanyERCTokenDeployed(tokenName, address(erc20));
 
         return address(erc20);
@@ -56,14 +62,5 @@ contract ECO {
 
     function getCompanyERC20Address(string memory tokenName) external view returns (address) {
         return companyERC20[tokenName];
-    }
-
-    function incVal() external returns (uint128) {
-        _val++;
-        return _val;
-    }
-
-    function getVal() external view returns (uint128) {
-        return _val;
-    }
+    }    
 }

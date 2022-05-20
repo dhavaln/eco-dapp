@@ -1,12 +1,13 @@
 import React from "react";
 
 // We'll use ethers to interact with the Ethereum network and our contract
-import { ethers } from "ethers";
+import { Contract, ethers, utils } from "ethers";
 
 // Import Contract ABIs add chain address
 import ECO from "../contracts/ECOContract.json";
-import CompanyERC from "../contracts/CompanyERC.json";
 import VestingManager from "../contracts/VestingManager.json";
+import CompanyERC from "../contracts/CompanyERC.json";
+import IERC20 from '../contracts/IERC20.json';
 
 import contractAddress from "../contracts/contract-address.json";
 
@@ -14,6 +15,12 @@ import contractAddress from "../contracts/contract-address.json";
 import { NoWalletDetected } from "./NoWalletDetected";
 import { ConnectWallet } from "./ConnectWallet";
 import { Loading } from "./Loading";
+import { WalletAddress } from "./WalletAddress";
+import { ECOHeader } from "./ECOHeader";
+
+import CreateERC20Modal from "./CreateERC20Modal";
+import CreateVestingManagerModal from "./CreateVestingManagerModal";
+import AddWalletMemberModal from "./AddWalletMemberModal";
 
 // This is the Hardhat Network id, you might change it in the hardhat.config.js.
 // If you are using MetaMask, be sure to change the Network id to 1337.
@@ -37,6 +44,7 @@ export class Dapp extends React.Component {
       // Company VestingManager
       vestingManager: undefined,      
       hasERC20: false,
+      hasVestingWallet: false,
 
       // The info of the test contract (i.e. It's Name)
       testContractData: undefined,
@@ -45,23 +53,71 @@ export class Dapp extends React.Component {
       // The user's address and balance
       selectedAddress: undefined,      
       networkError: undefined,
+
+      showERC20Modal: false,
+      showVestingManagerModal: false,
+      showAddMemberModal: false
     };
 
     this.state = this.initialState;
   }
 
-  async createVestingManager(){
+  createVestingManager = async ({name, erc20Address}) => {
+    if(!this.state.erc20) return;
+    if(!name || !erc20Address) return;
+
+    console.log(name, erc20Address);
+
+    // Create the VestingManager with given company name and ERC20 address
+    await this._eco.createCompany(name, erc20Address);
+
+    this.setState({
+      showVestingManagerModal: false
+    });
+  }
+
+  createERC20Token = async ({ name, symbol, totalSupply }) => {
+    if(!name || !symbol || totalSupply <= 0) return;
+
+    console.log(name, symbol.toUpperCase(), totalSupply);
+    await this._eco.createCompanyERC(name, symbol.toUpperCase(), totalSupply);    
+
+    this.setState({
+      showERC20Modal: false
+    });
+  }
+
+  addMemberInVesting = async ({ address, totalTokens, transferOn }) => {
+    // await this._vestingWallet.allocateTokens()
+    console.log(address, totalTokens, transferOn);
+
+    this.setState({
+      showAddMemberModal: false
+    })
+  }
+
+  transferERC20Tokens = async () => {
 
   }
 
-  createERC20Token = async()=>{
-    await this._eco.createCompanyERC("APPGAMBIT", "APPG", 9999999);
+  showAddMember = (isShow) => {
+    this.setState({
+      showAddMemberModal: isShow
+    })
+  };
+
+  showVestingManager = (isShow) => {
+    this.setState({
+      showVestingManagerModal: isShow
+    });
+  };
+
+  showCreateTokenPopup = (isShow) => {    
+    this.setState({
+      showERC20Modal: isShow
+    });
   }
 
-  incVal = async() => {
-    await this._eco.functions.incVal();
-  }
-  
   render() {
     // Ethereum wallets inject the window.ethereum object. If it hasn't been
     // injected, we instruct the user to install MetaMask.
@@ -77,6 +133,11 @@ export class Dapp extends React.Component {
     // Note that we pass it a callback that is going to be called when the user
     // clicks a button. This callback just calls the _connectWallet method.
     if (!this.state.selectedAddress) {
+      if(window.ethereum){
+        this._connectWallet()
+        return (<div></div>);
+      }
+
       return (
         <ConnectWallet 
           connectWallet={() => this._connectWallet()} 
@@ -94,40 +155,59 @@ export class Dapp extends React.Component {
     // If everything is loaded, we render the application.
     return (
       <div className="container p-4">
-        <div className="row">
-          <div className="col-12">
-            <h1>
-              ECO - Employee Coin Ownership
-            </h1>                      
+        <ECOHeader currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 }/>
 
-            <div className="row">
-              <div className="col">
-                Your Wallet: <b>...{this.state.selectedAddress.substr(this.state.selectedAddress.length - 5)}</b> 
-              </div>
-              <div className="col text-right">
-                Total Wallets under ECO: <b>{this.state.allCompanies ? this.state.allCompanies.length : '0'}</b>
-              </div>
-            </div>              
-          </div>
-        </div>
+        <CreateERC20Modal show={this.state.showERC20Modal} onClose={this.showCreateTokenPopup} onCreate={ this.createERC20Token }/>
+        <CreateVestingManagerModal name={ this.state.ercCompany } erc20Address={this.state.erc20} show={this.state.showVestingManagerModal} onClose={this.showVestingManager} onCreate={this.createVestingManager} />
+        <AddWalletMemberModal show={this.state.showAddMemberModal} onClose={this.showAddMember} onCreate={ this.addMemberInVesting } />
 
-        <hr/>
-
-        <div className="container">
+        <div className="container">          
           <div className="card-deck mb-3 text-center">
-              <div className="card mb-6 box-shadow">
+              <div className="card mb-8 box-shadow">
                 <div className="card-header">
-                  <h4 className="my-0 font-weight-normal">Vesting Wallet</h4>
+                  <h4 className="my-0 font-weight-normal">
+                    Vesting Wallet                    
+                  </h4>
                 </div>
-                <div className="card-body">
-                  <ul className="list-unstyled mt-3 mb-4">
-                    <li>We can help you setup a Blockchain-based secure and periodic token transfers to your employees and contributors.</li>                  
-                  </ul>
-                  <button type="button" className="btn btn-lg btn-block btn-primary" onClick={this.createVestingManager}>Create a Wallet</button>
+                <div className="card-body">                  
+                  {
+                    !this.state.hasVestingWallet 
+                    ? <ul className="list-unstyled mt-3 mb-4">
+                        <li>We can help you setup a Blockchain-based secure and periodic token transfers to your employees and contributors.</li>                  
+                      </ul>
+                    : <ul className="list-unstyled mt-3 mb-4">
+                        <WalletAddress address={ this.state.vestingWalletAddr } label={"Wallet Address"} />
+                        <li>Wallet Status: <b>{ this.state.vestingActive ? 'ACTIVE' : 'INACTIVE' }</b></li>                        
+                      </ul>
+                  }
+
+                  {
+                    this.state.hasVestingWallet 
+                    ? <table className="table">
+                        <thead>
+                          <tr>
+                            <th scope="col">{this.state.vestingMembers.length} Member(s)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            {/* <td scope="col">
+                              <WalletAddress address={ this.state.vestingWalletAddr } label={"Wallet"}/><span className="badge badge-primary">Active</span><br/>
+                              Tokens Alloted: <b>1,000,000</b><br/>, Tokens Transferred: <b>5,00,000</b><br/>
+                              Next Release: 22 May 2022<br/>
+                            </td> */}
+                          </tr>
+                        </tbody>
+                      </table>
+                    : ''
+                  }
+                  <hr/>
+                  { !this.state.hasVestingWallet ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showVestingManager(true)}>Create a Wallet</button> : ''}
+                  { this.state.hasVestingWallet && this.state.vestingActive ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showAddMember(true)}>Add Member</button> : ''}
                 </div>
               </div>
 
-              <div className="card mb-6 box-shadow">
+              <div className="card mb-4 box-shadow">
                 <div className="card-header">                  
                   <h4 className="my-0 font-weight-normal">{ this.state.hasERC20 ? 'Your Tokens' : 'Don\'t have Tokens'}</h4>
                 </div>              
@@ -137,15 +217,16 @@ export class Dapp extends React.Component {
                       ? <ul className="list-unstyled mt-3 mb-4"> 
                           <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>
                         </ul>
-                      : <ul className="list-unstyled mt-3 mb-4"> 
-                          <li>We see you already have your company tokens: <b>{ this.state.erc20 }</b></li>
+                      : <ul className="list-unstyled mt-3 mb-4">                        
+                          <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
                           <li>&nbsp;</li>
                           <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>                          
                           <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>                          
                         </ul>
                   }                  
 
-                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.createERC20Token()}>Create Tokens</button> : '' }
+                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showCreateTokenPopup(true)}>Create Tokens</button> : '' }
+                  { this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.transferERC20Tokens()}>Transfer Tokens to Wallet</button> : '' }
                 </div>
               </div>
             </div>
@@ -158,7 +239,7 @@ export class Dapp extends React.Component {
     this._stopPollingData();
   }
 
-  async _connectWallet() {
+  async _connectWallet() {    
     // Generic Wallet Connector
     // This method is run when the user clicks the Connect. It connects the
     // dapp to the user's wallet, and initializes it.
@@ -217,12 +298,25 @@ export class Dapp extends React.Component {
     // We first initialize ethers by creating a provider using window.ethereum
     this._provider = new ethers.providers.Web3Provider(window.ethereum);
 
+    console.log("ECO Contract Address", contractAddress.ECOContract);
+
     // Then, we initialize the contract using that provider and the contract's artifact.    
     this._eco = new ethers.Contract(
       contractAddress.ECOContract,
       ECO.abi,
       this._provider.getSigner(0)
     );
+
+    let filter = {
+        address: contractAddress.ECOContract,
+        topics: [
+            utils.id("CompanyERCTokenDeployed(string,string)")
+        ]
+    };
+
+    this._provider.on(filter, (log) => {
+      console.log('event received', log);
+    });
   }
 
   // This is added just for the testing purpose.
@@ -243,16 +337,40 @@ export class Dapp extends React.Component {
     this._pollDataInterval = undefined;
   }
 
-  async _getContractData() {
+  async _getContractData() {    
     let allCompanies = await this._eco.getAllCompanies();
-    let erc20 = await this._eco.getCompanyERC20Address("APPG");
+    console.log('all companies', allCompanies);
 
+    // Replace this to find ERC20 token based on selected address
+    let erc20 = undefined;
     let hasERC20 = false;
+
+    // Reaplce this to find VestingManager for the current address
+    let vestingWalletAddr = await this._eco.companies( this.state.selectedAddress );
+    console.log('vesting wallet address', vestingWalletAddr);
+
+    if(vestingWalletAddr != 0x0000000000000000000000000000000000000000){
+      this.state.hasVestingWallet = true;
+      this.state.vestingWalletAddr = vestingWalletAddr;
+
+      this._vestingWallet = new ethers.Contract(
+        vestingWalletAddr,
+        VestingManager.abi,
+        this._provider.getSigner(0)
+      );
+
+      this.state.vestingMembers = await this._vestingWallet.getAllotedMembers();
+      this.state.vestingActive = await this._vestingWallet.isActive();
+      erc20 = await this._vestingWallet.companyERC20();
+      hasERC20 = true;
+    }
+    
     if(erc20 != 0x0000000000000000000000000000000000000000){
       hasERC20 = true;
 
       this._erc20 = new ethers.Contract(
         erc20,
+        // IERC.abi // I can't access name() and symbol() with this
         CompanyERC.abi,
         this._provider.getSigner(0)
       );
@@ -260,7 +378,7 @@ export class Dapp extends React.Component {
       this.state.ercCompany = await this._erc20.name();
       this.state.ercSymbol = await this._erc20.symbol();
       this.state.ercTotalSupply = (await this._erc20.totalSupply()).toString();
-      this.state.ercBalance = (await this._erc20.balanceOf( this.state.selectedAddress )).toString();
+      this.state.ercBalance = (await this._erc20.balanceOf( this.state.selectedAddress )).toString();      
     }
     
     const name = "test-name";

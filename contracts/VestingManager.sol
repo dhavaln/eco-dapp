@@ -19,6 +19,7 @@ contract VestingManager {
     
     // This is the kill switch to kind of enable/disable the working of Vesting
     bool public isActive;
+    bool public isAvailable;
 
     struct MemberAllotment {
         bool isComplete;
@@ -48,6 +49,7 @@ contract VestingManager {
         companyName = company;
         companyERC20 = tokenAddress;
         isActive = true;
+        isAvailable = true;
 
         _companyERC20 = IERC20(tokenAddress);
     }
@@ -198,5 +200,9 @@ contract VestingManager {
 
     function getAllotedMembers() external view returns (address[] memory) {
         return allMembers;
+    }
+
+    function isWalletAvailable() public view returns (bool) {
+        return isAvailable;
     }
 }

@@ -1,4 +1,7 @@
 // This is a script for deploying your contracts. You can adapt it to deploy
+
+const { artifacts } = require("hardhat");
+
 // yours, or create new ones.
 async function main() {
   // This is just a convenience check
@@ -45,6 +48,7 @@ function saveFrontendFiles(ecoContract) {
   const ECOContractArtifact = artifacts.readArtifactSync("ECO");
   const CompanyERCArtifact = artifacts.readArtifactSync("CompanyERC");
   const VestingManagerArtifact = artifacts.readArtifactSync("VestingManager");
+  const IERC20 = artifacts.readArtifactSync("IERC20");  
 
   fs.writeFileSync(
     contractsDir + "/ECOContract.json",
@@ -59,6 +63,11 @@ function saveFrontendFiles(ecoContract) {
   fs.writeFileSync(
     contractsDir + "/VestingManager.json",
     JSON.stringify(VestingManagerArtifact, null, 2)
+  );
+
+  fs.writeFileSync(
+    contractsDir + "/IERC20.json",
+    JSON.stringify(IERC20, null, 2)
   );
 }
 
