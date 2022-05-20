@@ -187,6 +187,16 @@ export class Dapp extends React.Component {
     });
   }
 
+  showAllWallets = () => {
+    console.log('show all vesting wallet in the model list');
+
+    this.setState({
+      messageTitle: 'Vesting Wallets',
+      messageText: this.state.allCompanies.map( (addr) => `Wallet: ${addr}\n\n`),
+      showMessageModal: true
+    });
+  }
+
   loadTokenAddress = async () => {
     console.log(this.state.tokenSymbol);
     if(!this.state.tokenSymbol) return;
@@ -251,7 +261,7 @@ export class Dapp extends React.Component {
     // If everything is loaded, we render the application.
     return (
       <div className="container p-4">
-        <ECOHeader currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 }/>
+        <ECOHeader currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 } showAllWallets={ this.showAllWallets }/>
 
         <CreateERC20Modal show={this.state.showERC20Modal} onClose={this.showCreateTokenPopup} onCreate={ this.createERC20Token }/>
         <CreateVestingManagerModal name={ this.state.ercCompany } erc20Address={this.state.erc20} show={this.state.showVestingManagerModal} onClose={this.showVestingManager} onCreate={this.createVestingManager} />
@@ -437,15 +447,12 @@ export class Dapp extends React.Component {
       this._provider.getSigner(0)
     );
 
-    let filter = {
-        address: contractAddress.ECOContract,
-        topics: [
-            utils.id("CompanyERCTokenDeployed(string,string)")
-        ]
-    };
-
-    this._provider.on(filter, (log) => {
-      console.log('event received', log);
+    this._eco.on("VestingWalletAdded", (address) => {
+      console.log("vesting wallet event received", address)
+    });
+  
+    this._eco.on("CompanyERCTokenDeployed", (tokenName, tokenAddress) => {
+      console.log("token deployed event received", tokenName, tokenAddress);
     });
   }
 
@@ -493,6 +500,14 @@ export class Dapp extends React.Component {
         VestingManager.abi,
         this._provider.getSigner(0)
       );
+
+      this._vestingWallet.on("MemberAdded", (to, token) => {
+        console.log("member added event received", to, token);
+      });
+
+      this._vestingWallet.on("MemberTokensVested", (to, token, isComplete) => {
+        console.log("token vested event received", to, token, isComplete);
+      });
 
       this.state.vestingMembers = await this._vestingWallet.getAllotedMembers();      
 

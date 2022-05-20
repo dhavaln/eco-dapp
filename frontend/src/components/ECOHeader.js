@@ -1,7 +1,7 @@
 import React from "react";
 import { WalletAddress } from "./WalletAddress";
 
-export function ECOHeader({ currentWallet, totalECO }) {
+export function ECOHeader({ currentWallet, totalECO, showAllWallets }) {
   return (
     <div>
         <div className="row">
@@ -15,7 +15,7 @@ export function ECOHeader({ currentWallet, totalECO }) {
                 <WalletAddress address={ currentWallet } label={"Your Wallet"} />
               </div>
               <div className="col text-right">
-                Total Wallets under ECO: <b>{ totalECO }</b>
+                <a href="#" onClick={ showAllWallets } style={{textDecoration: "underline"}}>Total Wallets under ECO: <b>{ totalECO }</b></a>
               </div>
             </div>              
           </div>

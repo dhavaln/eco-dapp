@@ -20,7 +20,7 @@ contract ECO {
     // Store ERC20 token address for a company token
     mapping(string => address) public companyERC20;
 
-    event VestingWalletAdded(string);
+    event VestingWalletAdded(address company);
     event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
 
     constructor(){
@@ -37,7 +37,7 @@ contract ECO {
         totalCompanies++;
 
         // Emit VestingWallet Added Event
-        emit VestingWalletAdded(company);
+        emit VestingWalletAdded(msg.sender);
 
         return true;
     }
