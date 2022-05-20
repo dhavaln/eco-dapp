@@ -248,10 +248,10 @@ export class Dapp extends React.Component {
                                     { <td scope="col" >
                                         <p>
                                         <WalletAddress address={member.address} label={ "Wallet Address" }/> ({ !member.isComplete ? "ACTIVE" : "COMPLETED"}) <br/>
-                                        Tokens Alloted: <b>{member.totalTokensAllotted}</b>, Tokens Transferred: <b>{member.totalTokensTransferred}</b><br/>
+                                        Tokens Allotted: <b>{member.totalTokensAllotted}</b>, Tokens Transferred: <b>{member.totalTokensTransferred}</b><br/>
                                         <span style={{color: "green"}}>Next Release: <b>{ member.nextRelease.toDateString() }</b></span><br/>
                                         </p>
-                                        <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release Vested Tokens</button>
+                                        { !member.isComplete ? <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release Vested Tokens</button> : ''}
                                     </td> }
                                   </tr>
                               })
@@ -262,7 +262,7 @@ export class Dapp extends React.Component {
                   }
                   <hr/>
                   { !this.state.hasVestingWallet ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showVestingManager(true)}>Create a Wallet</button> : ''}
-                  { this.state.hasVestingWallet && this.state.vestingActive ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showAddMember(true)}>Add Member</button> : ''}
+                  { this.state.hasVestingWallet && this.state.vestingActive ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showAddMember(true)}>Add New Member</button> : ''}
                 </div>
               </div>
 
