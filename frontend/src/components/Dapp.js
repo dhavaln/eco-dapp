@@ -116,7 +116,15 @@ export class Dapp extends React.Component {
     if(transferOnEpoch <= (Date.now()/1000)) return;
 
     console.log('ready to add member');
-    await this._vestingWallet.allocateTokens( address, totalTokens, [totalTokens], [transferOnEpoch]);
+    try{
+      await this._vestingWallet.allocateTokens( address, totalTokens, [totalTokens], [transferOnEpoch]);
+    }catch(e){
+      this.setState({
+        messageTitle: 'Allocation Error',
+        messageText: e.data.data.message,
+        showMessageModal: true
+      });
+    }
 
     this.setState({
       showAddMemberModal: false
@@ -276,7 +284,7 @@ export class Dapp extends React.Component {
               <div className="card mb-8 box-shadow">
                 <div className="card-header">
                   <h4 className="my-0 font-weight-normal">
-                    Vesting Wallet                    
+                    { !this.state.hasVestingWallet ? 'Vesting Wallet' : 'Your Vesting Wallet' }
                   </h4>
                 </div>
                 <div className="card-body">                  
@@ -286,8 +294,10 @@ export class Dapp extends React.Component {
                         <li>We can help you setup a Blockchain-based secure and periodic token transfers to your employees and contributors.</li>                  
                       </ul>
                     : <ul className="list-unstyled mt-3 mb-4">
-                        <WalletAddress address={ this.state.vestingWalletAddr } label={"Wallet Address"} />
-                        <li>Wallet Status: <b>{ this.state.vestingActive ? 'ACTIVE' : 'INACTIVE' }</b></li>                        
+                        <WalletAddress address={ this.state.vestingWalletAddr } label={"Address"} />
+                        <li>Status: <b>{ this.state.vestingActive ? 'ACTIVE' : 'INACTIVE' }</b></li>
+                        <li style={{color: "red"}}>Tokens In Wallet: <b>{ this.state.vestingWalletTokenBalance }</b></li>
+                        <li style={{color: "red"}}>Tokens In Vesting: <b>{ this.state.vestingWalletTokenBalance }</b></li>
                       </ul>
                   }
 
@@ -303,13 +313,43 @@ export class Dapp extends React.Component {
                             { 
                               this.state.vestingMembersDetail.map(( member) => {
                                 return <tr>
-                                    { <td scope="col" >
-                                        <p>
-                                        <WalletAddress address={member.address} label={ "Wallet Address" }/> ({ !member.isComplete ? "ACTIVE" : "COMPLETED"}) <br/>
-                                        Tokens Allotted: <b>{member.totalTokensAllotted}</b>, Tokens Transferred: <b>{member.totalTokensTransferred}</b><br/>
-                                        <span style={{color: "green"}}>Next Release: <b>{ member.nextRelease.toDateString() }</b></span><br/>
-                                        </p>
-                                        { !member.isComplete ? <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release Vested Tokens</button> : ''}
+                                    { <td scope="col" style={{ padding: "0px"}}>
+                                        <table style={{ textAlign: "left"}} className="table table-hover table-sm">
+                                          <tbody>
+                                          <tr>
+                                            <td>
+                                              <b>Member Address</b>
+                                            </td>
+                                            <td>
+                                              <WalletAddress address={member.address} label={ "" }/> ({ !member.isComplete ? "ACTIVE" : "COMPLETED"})
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              Tokens Allotted
+                                            </td>
+                                            <td>
+                                              <b>{member.totalTokensAllotted} ({(member.totalTokensAllotted * 100 / this.state.ercTotalSupply).toFixed(2)}%)</b>
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              Tokens Transferred
+                                            </td>
+                                            <td>
+                                              <b>{member.totalTokensTransferred}</b>
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              Next Release
+                                            </td>
+                                            <td>
+                                              <b>{ member.nextRelease.toDateString() }</b>  { !member.isComplete ? <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release</button> : ''}
+                                            </td>
+                                          </tr>
+                                          </tbody>
+                                        </table>
                                     </td> }
                                   </tr>
                               })
@@ -318,7 +358,7 @@ export class Dapp extends React.Component {
                       </table>
                     : ''
                   }
-                  <hr/>
+                  
                   { !this.state.hasVestingWallet ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showVestingManager(true)}>Create a Wallet</button> : ''}
                   { this.state.hasVestingWallet && this.state.vestingActive ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showAddMember(true)}>Add New Member</button> : ''}
                 </div>
@@ -338,9 +378,7 @@ export class Dapp extends React.Component {
                           <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
                           <li>&nbsp;</li>
                           <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>
-                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>
-                          <li style={{color: "red"}}>VestingWallet Balance: <b>{ this.state.vestingWalletTokenBalance }</b></li>
-                          
+                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>                          
                         </ul>
                   }                  
 
@@ -513,8 +551,12 @@ export class Dapp extends React.Component {
         this._provider.getSigner(0)
       );
 
-      this._vestingWallet.on("MemberAdded", (to, token) => {
+      this._vestingWallet.on("MemberAdded", (to, token, e) => {
         console.log("member added event received", to, token);
+        if(e.blockNumber > this.state.currentBlockNumber){
+          // Refresh UI
+          this._getContractData();
+        }
       });
 
       this._vestingWallet.on("MemberTokensVested", (to, token, isComplete) => {

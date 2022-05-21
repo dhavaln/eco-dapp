@@ -21,6 +21,8 @@ contract VestingManager {
     bool public isActive;
     bool public isAvailable;
 
+    uint256 tokensAllocated;
+
     struct MemberAllotment {
         bool isComplete;
         bool isPaused;
@@ -83,9 +85,10 @@ contract VestingManager {
         // In case of allowance, there is a possibility that the Company can spend other tokens
         // In case of transfer, the tokens are already reserved and can not be spent on anywhere else
         // Transfer the Tokens to current contract
-        uint256 balanceTokens = _companyERC20.balanceOf(address(this));
+        uint256 balanceTokens = _companyERC20.balanceOf(address(this));        
         require(balanceTokens >= tokens, "Not enough tokens allocated to Vesting Manager. Make sure you are the owner of your ERC20 tokens.");
-        
+        require(balanceTokens >= (tokensAllocated + tokens), "Not enough tokens allocated to Vesting Manager. Make sure you are the owner of your ERC20 tokens.");
+
         MemberAllotment storage _lot = allotments[to];
         _lot.totalTokensAllotted = 0; // total vesting tokens for entire schedule
         _lot.totalTokensTransferred = 0;
@@ -103,6 +106,7 @@ contract VestingManager {
             revert("Token allotment is not matching with total tokens.");
         }
 
+        tokensAllocated += _lot.totalTokensAllotted;
         allMembers.push(to);
         emit MemberAdded(to, tokens);
 
@@ -166,6 +170,10 @@ contract VestingManager {
                     memberAllotment.totalTokensAllotted -= memberAllotment.tokensAlloted[i];
                     memberAllotment.totalTokensTransferred += memberAllotment.tokensAlloted[i];
                     memberAllotment.tokensAlloted[i] = 0;
+
+                    // Reduce the allotment value after transfer
+                    tokensAllocated += memberAllotment.totalTokensAllotted;
+
                     isReleased = true;
 
                     // Check if all tokens are transferred
