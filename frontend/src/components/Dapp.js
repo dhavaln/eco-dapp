@@ -64,7 +64,8 @@ export class Dapp extends React.Component {
       showTokenTransferModal: false,
       showMessageModal: false,
 
-      tokenSymbol: undefined
+      tokenSymbol: undefined,
+      currentBlockNumber: 0
     };
 
     this.state = this.initialState;
@@ -224,6 +225,12 @@ export class Dapp extends React.Component {
     }
   }
 
+  componentDidMount(){
+    if(window.ethereum){
+      this._connectWallet();      
+    }
+  }
+
   render() {
     // Ethereum wallets inject the window.ethereum object. If it hasn't been
     // injected, we instruct the user to install MetaMask.
@@ -239,11 +246,6 @@ export class Dapp extends React.Component {
     // Note that we pass it a callback that is going to be called when the user
     // clicks a button. This callback just calls the _connectWallet method.
     if (!this.state.selectedAddress) {
-      if(window.ethereum){
-        this._connectWallet()
-        return (<div></div>);
-      }
-
       return (
         <ConnectWallet 
           connectWallet={() => this._connectWallet()} 
@@ -435,9 +437,10 @@ export class Dapp extends React.Component {
   }
 
   async _initializeEthers() {
+    console.log('FIRE ONCE: initializing ethers connection and events');
+
     // We first initialize ethers by creating a provider using window.ethereum
     this._provider = new ethers.providers.Web3Provider(window.ethereum);
-
     console.log("ECO Contract Address", contractAddress.ECOContract);
 
     // Then, we initialize the contract using that provider and the contract's artifact.    
@@ -447,13 +450,22 @@ export class Dapp extends React.Component {
       this._provider.getSigner(0)
     );
 
-    this._eco.on("VestingWalletAdded", (address) => {
-      console.log("vesting wallet event received", address)
+    this._eco.on("VestingWalletAdded", async (address, e) => {
+      if(e.blockNumber > this.state.currentBlockNumber){
+        // Refresh UI
+        this._getContractData();
+      }
     });
   
     this._eco.on("CompanyERCTokenDeployed", (tokenName, tokenAddress) => {
       console.log("token deployed event received", tokenName, tokenAddress);
     });
+
+    let blockNumber = (await this._provider.getBlockNumber()).toString();
+    console.log('current block number', blockNumber);
+    this.setState({
+      currentBlockNumber: blockNumber
+    })
   }
 
   // This is added just for the testing purpose.
@@ -559,12 +571,15 @@ export class Dapp extends React.Component {
       this.state.vestingWalletTokenBalance = (await this._erc20.balanceOf( this.state.vestingWalletAddr )).toString();
     }
     
+    let blockNumber = (await this._provider.getBlockNumber()).toString();
+
     const name = "test-name";
     this.setState({ 
       testContractData: { name },
       allCompanies,
       hasERC20,
-      erc20
+      erc20,
+      currentBlockNumber: blockNumber
     });
   }  
 

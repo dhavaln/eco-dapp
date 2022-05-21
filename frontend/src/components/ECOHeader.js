@@ -6,16 +6,16 @@ export function ECOHeader({ currentWallet, totalECO, showAllWallets }) {
     <div>
         <div className="row">
           <div className="col-12">
-            <h1>
+            <h1 style={{ textAlign: "left"}}>
               ECO - Employee Coin Ownership
             </h1>                      
-
+            <hr/>
             <div className="row">
               <div className="col">                
                 <WalletAddress address={ currentWallet } label={"Your Wallet"} />
               </div>
               <div className="col text-right">
-                <a href="#" onClick={ showAllWallets } style={{textDecoration: "underline"}}>Total Wallets under ECO: <b>{ totalECO }</b></a>
+                { totalECO > 0 ? <a href="#" onClick={ showAllWallets } style={{textDecoration: "underline"}}>Total Wallets under ECO: <b>{ totalECO }</b></a> : ''}
               </div>
             </div>              
           </div>
