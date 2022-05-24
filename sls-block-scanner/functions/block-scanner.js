@@ -25,9 +25,7 @@ module.exports.handler = async (event, context, callback) => {
         address: CONTRACT_ADDRESS,
         fromBlock: originBlock,
         toBlock: currentBlockNumber,
-        topics: [ 
-            
-        ]
+        topics: []
     }
     
     let events = [];
@@ -54,9 +52,5 @@ module.exports.handler = async (event, context, callback) => {
         events.push(storeEvent);
     });
 
-    console.log(events);        
+    console.log(events);
 };
-
-// eco.on("VestingWalletAdded", async (address, e) => {
-//     console.log('new vesting wallet added', address, e);
-// });

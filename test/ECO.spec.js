@@ -29,6 +29,7 @@ describe("ECO Tests", function () {
       companyAAcc = accounts[1];      
       memberAAcc = accounts[2];      
       companyAERC = undefined;
+      vestingWallet = undefined;
 
       const ECO = await ethers.getContractFactory("ECO");
       
@@ -48,93 +49,80 @@ describe("ECO Tests", function () {
       it("signup company A", async function () {
         await expect(
           await ecoMaster.connect(companyAAcc).createCompany("appgambit", companyAERC)
-        ).to.emit(ecoMaster, "CompanyAdded");
+        ).to.emit(ecoMaster, "VestingWalletAdded");
 
         await expect(
           await ecoMaster.connect(mainAcc).totalCompanies()
         ).to.equal(1);
       });
 
-      // it("validate company A vesting contract deployed", async function () {
-      //   address = await ecoMaster.connect(mainAcc).companies("appgambit")
-      //   const VestingManager = await ethers.getContractFactory("VestingManager");
-      //   const vestingManager = await VestingManager.attach(address);
+      it("validate company A vesting contract deployed", async function () {        
+        vestingWallet = (await ecoMaster.connect(mainAcc).getAllCompanies())[0];
+        expect(vestingWallet).to.be.not.null;                
+      });
+
+      it("trasfer tokens from ERC20 contract to Vesting Wallet", async function(){
+        // from companyAERC address to vestingWallet address
+        const CompanyERC = await ethers.getContractFactory("CompanyERC");
+        const ercTokens = await CompanyERC.attach(companyAERC);
         
-      //   await expect(
-      //     await vestingManager.connect(companyAAcc).companyName()
-      //   ).to.equal("appgambit");        
-      // });
+        await expect(
+          await ercTokens.connect(companyAAcc).transfer(vestingWallet, 1000)
+        ).to.emit(ercTokens, "Transfer");
 
-      // it("allocate company A vesting tokens to member", async function(){
-      //   const waitTime = 5; // seconds 
-      //   const tokensToTransfer = 1000;
+        await expect(
+          (await ercTokens.connect(vestingWallet).balanceOf(vestingWallet)).toString()
+        ).to.equal("1000");
+      });
 
-      //   address = await ecoMaster.connect(mainAcc).companies("appgambit")
-      //   const VestingManager = await ethers.getContractFactory("VestingManager");
-      //   const vestingManager = await VestingManager.attach(address);
+      it("allocate company A vesting tokens to member", async function(){
+        const waitTime = 5; // seconds 
+        const tokensToTransfer = 1000;
         
-      //   await vestingManager.connect(companyAAcc).allocateTokens(
-      //     memberAAcc.address, 
-      //     tokensToTransfer, 
-      //     [tokensToTransfer/2, tokensToTransfer/2], 
-      //     [getTimeInEpoch() + waitTime, getTimeInEpoch() + (waitTime * 2) ]
-      //   );
-
-      //   let allotment = await vestingManager.connect(memberAAcc).getAllotment();        
-      //   expect(allotment.totalTokensAllotted).equal(tokensToTransfer);
-      //   expect(allotment.isComplete).equal(false);
-      // });
-
-      // it('should wait for vesting time', async function(){
-      //   await delay(6 * 1000);
-      // });
-
-      // it("test vesting schedule", async function() {
-      //   address = await ecoMaster.connect(mainAcc).companies("appgambit")
-      //   const VestingManager = await ethers.getContractFactory("VestingManager");
-      //   const vestingManager = await VestingManager.attach(address);
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
         
-      //   await expect(vestingManager.connect(companyAAcc).releaseTokens(memberAAcc.address))
-      //   .to.emit(vestingManager, "MemberTokensVested")
-      //   .withArgs(memberAAcc.address, 500, false);        
-      // });
+        await vestingManager.connect(companyAAcc).allocateTokens(
+          memberAAcc.address, 
+          tokensToTransfer, 
+          [tokensToTransfer/2, tokensToTransfer/2], 
+          [getTimeInEpoch() + waitTime, getTimeInEpoch() + (waitTime * 2) ]
+        );
 
-      // it("let member check the status of his allotment", async function(){
-      //   address = await ecoMaster.connect(mainAcc).companies("appgambit")
-      //   const VestingManager = await ethers.getContractFactory("VestingManager");
-      //   const vestingManager = await VestingManager.attach(address);
+        let allotment = await vestingManager.connect(memberAAcc).getAllotment();        
+        expect(allotment.totalTokensAllotted).equal(tokensToTransfer);
+        expect(allotment.isComplete).equal(false);
+      });
 
-      //   let allotment = await vestingManager.connect(memberAAcc).getAllotment();
-      //   expect(allotment.totalTokensAllotted).equal(500);
-      //   expect(allotment.totalTokensTransferred).equal(500);
-      //   expect(allotment.isComplete).equal(false);
-      // });
+      it('should wait for vesting time', async function(){
+        await delay(6 * 1000);
+      });
 
-      // it("validate total members allocated in company A", async function(){
-      //   address = await ecoMaster.connect(mainAcc).companies("appgambit")
-      //   const VestingManager = await ethers.getContractFactory("VestingManager");
-      //   const vestingManager = await VestingManager.attach(address);
+      it("test vesting schedule", async function() {
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
+        
+        await expect(vestingManager.connect(companyAAcc).releaseTokens(memberAAcc.address))
+        .to.emit(vestingManager, "MemberTokensVested")
+        .withArgs(memberAAcc.address, 500, false);
+      });
 
-      //   let allMembers = await vestingManager.connect(companyAAcc).getAllotedMembers();
-      //   expect(allMembers.length).to.equal(1);
-      // });
+      it("let member check the status of his allotment", async function(){        
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
 
-      // it("create ERC20 token for the company B", async function() {
-      //   await expect(
-      //     await ecoMaster.connect(companyAAcc).createCompanyERC("apple", "APP", 1000000)
-      //   ).to.emit(ecoMaster, "CompanyERCTokenDeployed");
+        let allotment = await vestingManager.connect(memberAAcc).getAllotment();
+        expect(allotment.totalTokensAllotted).equal(500);
+        expect(allotment.totalTokensTransferred).equal(500);
+        expect(allotment.isComplete).equal(false);
+      });
 
-      //   let tokenAddress = await ecoMaster.connect(companyAAcc).getCompanyERC20Address("GOG");
-      //   console.log(tokenAddress);
-      //   await expect(tokenAddress).not.equal(null);
-      // });
+      it("validate total members allocated in company A", async function(){
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
 
-      // it("signup company B with newly deployed ERC20 token", async function() {
-
-      // });
-
-      // it("add two member allocation in company B", async function() {
-
-      // });
+        let allMembers = await vestingManager.connect(companyAAcc).getAllotedMembers();
+        expect(allMembers.length).to.equal(1);
+      });      
     });
 });
