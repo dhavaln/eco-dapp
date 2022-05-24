@@ -29,6 +29,7 @@ import MessageModal from "./MessageModal";
 // Here's a list of network ids https://docs.metamask.io/guide/ethereum-provider.html#properties
 // to use when deploying to other networks.
 const HARDHAT_NETWORK_ID = '31337';
+const RINKEBY_NETWORK_ID = '4';
 
 // This is an error code that indicates that the user canceled a transaction
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
@@ -271,7 +272,7 @@ export class Dapp extends React.Component {
     // If everything is loaded, we render the application.
     return (
       <div className="container p-4">
-        <ECOHeader currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 } showAllWallets={ this.showAllWallets }/>
+        <ECOHeader ecoAddress={contractAddress.ECOContract} currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 } showAllWallets={ this.showAllWallets }/>
 
         <CreateERC20Modal show={this.state.showERC20Modal} onClose={this.showCreateTokenPopup} onCreate={ this.createERC20Token }/>
         <CreateVestingManagerModal name={ this.state.ercCompany } erc20Address={this.state.erc20} show={this.state.showVestingManagerModal} onClose={this.showVestingManager} onCreate={this.createVestingManager} />
@@ -280,11 +281,57 @@ export class Dapp extends React.Component {
         <MessageModal show={this.state.showMessageModal} title={ this.state.messageTitle} message={ this.state.messageText} onClose={this.showMessageModal}/>
 
         <div className="container">          
-          <div className="card-deck mb-3 text-center">
+          <div className="card-deck mb-3 text-center">              
+              <div className="card mb-4 box-shadow">
+                <div className="card-header">                  
+                  <h4 className="my-0 font-weight-normal">Register Your ERC20 Tokens</h4>
+                </div>              
+                <div className="card-body">
+                  {
+                    !this.state.hasERC20 
+                      ? <ul className="list-unstyled mt-3 mb-4"> 
+                          <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>
+                        </ul>
+                      : <ul className="list-unstyled mt-3 mb-4">                        
+                          <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
+                          <li>&nbsp;</li>
+                          <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>
+                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>                          
+                        </ul>
+                  }                  
+
+                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showCreateTokenPopup(true)}>Create Tokens</button> : '' }
+
+                  { !this.state.hasERC20 ? <hr/> : ''}
+
+                  {
+                    !this.state.hasERC20 
+                      ? <div>
+                          <ul className="list-unstyled mt-3 mb-4"> 
+                            <li>Already deployed your tokens? Enter your Token Symbol to check.</li>
+                          </ul>
+
+                          <form>
+                            <div className="form-group">
+                                <input type="text" className="form-control" id="tokenSymbol" aria-describedby="tokenSymbol" placeholder="Enter your Token symbol" value={ this.state.tokenSymbol } onChange={ this.onChange('tokenSymbol') } />
+                            </div>
+                            <div className="form-group">
+                              { this.state.foundERC20 ? this.state.foundERC20 : ''}
+                            </div>
+                          </form>
+                        </div> : ''
+                  }
+                  
+                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-warning" onClick={()=>this.loadTokenAddress()}>Check Token</button> : '' }
+
+                  { this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showTokenTransfer(true)}>Transfer Tokens to Wallet</button> : '' }
+                </div>
+              </div>
+
               <div className="card mb-8 box-shadow">
                 <div className="card-header">
                   <h4 className="my-0 font-weight-normal">
-                    { !this.state.hasVestingWallet ? 'Vesting Wallet' : 'Your Vesting Wallet' }
+                    { !this.state.hasVestingWallet ? 'Setup Vesting Wallet' : 'Your Vesting Wallet' }
                   </h4>
                 </div>
                 <div className="card-body">                  
@@ -363,54 +410,16 @@ export class Dapp extends React.Component {
                   { this.state.hasVestingWallet && this.state.vestingActive ? <button type="button" className="btn btn-lg btn-block btn-primary" onClick={()=>this.showAddMember(true)}>Add New Member</button> : ''}
                 </div>
               </div>
-
-              <div className="card mb-4 box-shadow">
-                <div className="card-header">                  
-                  <h4 className="my-0 font-weight-normal">{ this.state.hasERC20 ? 'Your Tokens' : 'Don\'t have Tokens'}</h4>
-                </div>              
-                <div className="card-body">
-                  {
-                    !this.state.hasERC20 
-                      ? <ul className="list-unstyled mt-3 mb-4"> 
-                          <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>
-                        </ul>
-                      : <ul className="list-unstyled mt-3 mb-4">                        
-                          <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
-                          <li>&nbsp;</li>
-                          <li>Company: <b>{ this.state.ercCompany }</b> | Token Symbol: <b>{ this.state.ercSymbol } </b></li>
-                          <li>Total Supply: <b>{ this.state.ercTotalSupply }</b> | Remaining Tokens: <b>{ this.state.ercBalance }</b></li>                          
-                        </ul>
-                  }                  
-
-                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showCreateTokenPopup(true)}>Create Tokens</button> : '' }
-
-                  { !this.state.hasERC20 ? <hr/> : ''}
-
-                  {
-                    !this.state.hasERC20 
-                      ? <div>
-                          <ul className="list-unstyled mt-3 mb-4"> 
-                            <li>Already deployed your tokens? Enter your Token Symbol to check.</li>
-                          </ul>
-
-                          <form>
-                            <div className="form-group">
-                                <input type="text" className="form-control" id="tokenSymbol" aria-describedby="tokenSymbol" placeholder="Enter your Token symbol" value={ this.state.tokenSymbol } onChange={ this.onChange('tokenSymbol') } />
-                            </div>
-                            <div className="form-group">
-                              { this.state.foundERC20 ? this.state.foundERC20 : ''}
-                            </div>
-                          </form>
-                        </div> : ''
-                  }
-                  
-                  { !this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-warning" onClick={()=>this.loadTokenAddress()}>Check Token</button> : '' }
-
-                  { this.state.hasERC20 ? <button type="button" className="btn btn-lg btn-block btn-success" onClick={()=>this.showTokenTransfer(true)}>Transfer Tokens to Wallet</button> : '' }
-                </div>
-              </div>
             </div>
           </div>
+
+          <footer className="pt-4 my-md-5 pt-md-5 border-top">
+            <div className="row">
+              <div className="col-12 col-md">                                  
+                  <small className="d-block mb-3 text-muted">DappCamp #3 May 2022 / Team ECO / <a href="https://twitter.com/haque5farazul" target="_blank">@haque5farazul</a> / <a href="https://twitter.com/sanskar_107" target="_blank">@sanskar_107</a> / <a href="https://twitter.com/bakshim" target="_blank">@bakshim</a> / <a href="https://twitter.com/dhavaln" target="_blank">@dhavaln</a></small>
+              </div>
+            </div>
+          </footer>
       </div>
     );
   }
@@ -476,7 +485,7 @@ export class Dapp extends React.Component {
 
   async _initializeEthers() {
     console.log('FIRE ONCE: initializing ethers connection and events');
-
+    
     // We first initialize ethers by creating a provider using window.ethereum
     this._provider = new ethers.providers.Web3Provider(window.ethereum);
     console.log("ECO Contract Address", contractAddress.ECOContract);
@@ -652,7 +661,7 @@ export class Dapp extends React.Component {
 
   // This method checks if Metamask selected network is Localhost:8545 
   _checkNetwork() {
-    if (window.ethereum.networkVersion === HARDHAT_NETWORK_ID) {
+    if (window.ethereum.networkVersion === HARDHAT_NETWORK_ID || window.ethereum.networkVersion === RINKEBY_NETWORK_ID) {
       return true;
     }
 

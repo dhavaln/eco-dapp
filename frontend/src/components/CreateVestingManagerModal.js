@@ -8,7 +8,7 @@ class CreateVestingManagerModal extends React.Component {
 
         this.state = {
             name: this.props.name,
-            erc20Address: this.props.erc20Address       
+            erc20Address: this.props.erc20Address || ''       
         };
     }
 

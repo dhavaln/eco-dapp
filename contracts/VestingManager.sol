@@ -10,8 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 contract VestingManager {
     // Owner by default will be the Company who will provide the wallet address
-    address public owner;    
-    string public companyName;
+    address public owner;        
 
     // ERC20 Token address
     address public companyERC20;
@@ -22,6 +21,7 @@ contract VestingManager {
     bool public isAvailable;
 
     uint256 tokensAllocated;
+    string public companyName;    
 
     struct MemberAllotment {
         bool isComplete;
@@ -40,6 +40,7 @@ contract VestingManager {
     mapping(address => MemberAllotment) public allotments;
     address[] public allMembers;
 
+    // Events
     event MemberAdded(address indexed to, uint256 tokens);
     event MemberTokensVested(address indexed to, uint256 tokens, bool isComplete);
     event MemberVestingComplete(address indexed to, uint256 tokens);
@@ -79,8 +80,9 @@ contract VestingManager {
     // For an equal split in 4 parts the totalTokens = N, tokenSplit = [25,25,25,25] and timeSchedule = [future1, future2, future3, future4]
     // This way we can build any kind of custom schedule
     // All the input params will be pre-calculated from UI side and validated in the function    
-    function allocateTokens(address to, uint256 tokens, uint256[] memory tokenAllotment, uint256[] memory transferSchedule) external ownerOnly returns (bool) {        
-        require(tokenAllotment.length == transferSchedule.length, "Token allotment and schedule length is not matching.");
+    function allocateTokens(address to, uint256 tokens, uint256[] memory tokenAllotment, uint256[] memory transferSchedule) external ownerOnly returns (bool) {
+        uint256 tokenAllotmentLen = tokenAllotment.length;
+        require(tokenAllotmentLen == transferSchedule.length, "Token allotment and schedule length is not matching.");
 
         // In case of allowance, there is a possibility that the Company can spend other tokens
         // In case of transfer, the tokens are already reserved and can not be spent on anywhere else
@@ -97,7 +99,7 @@ contract VestingManager {
         _lot.tokensAlloted = tokenAllotment;
         _lot.transferSchedule = transferSchedule;
 
-        for(uint8 i = 0; i < tokenAllotment.length; i++){            
+        for(uint8 i = 0; i < tokenAllotmentLen; i++){            
             _lot.totalTokensAllotted += tokenAllotment[i];            
         }
 
@@ -111,13 +113,7 @@ contract VestingManager {
         emit MemberAdded(to, tokens);
 
         return true;
-    }
-
-    function checkERCTokenBalance(uint256 forTokens) internal {
-    }
-
-    function transferTokens(address to, uint56 tokens) internal {
-    }
+    }    
 
     function resumeAllotment(address to) external ownerOnly returns (bool) {
         // Check member allotment
@@ -156,7 +152,8 @@ contract VestingManager {
         bool isReleased = false;
 
         // This is a simple transfer. This will be replaced with custom schedule for simplicity.
-        for(uint8 i = 0; i < memberAllotment.transferSchedule.length ; i++){
+        uint256 transferScheduleLen = memberAllotment.transferSchedule.length;
+        for(uint8 i = 0; i < transferScheduleLen ; i++){
             // Check for previously vesting tokens
             if(memberAllotment.tokensAlloted[i] > 0){
 

@@ -14,11 +14,11 @@ contract ECO {
     
     // Store company vesting contracts
     mapping(address => VestingManager) public companies;
-    address[] allCompanies; 
-    uint128 public totalCompanies;
+    address[] allCompanies;     
     
     // Store ERC20 token address for a company token
     mapping(string => address) public companyERC20;
+    uint128 public totalCompanies;
 
     event VestingWalletAdded(address company);
     event CompanyERCTokenDeployed(string tokenName, address tokenAddress);
