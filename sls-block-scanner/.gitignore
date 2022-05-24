@@ -1,0 +1,5 @@
+contracts
+node_modules
+.DS_Store
+secrets.json*
+.serverless

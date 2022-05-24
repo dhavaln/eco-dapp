@@ -1,0 +1,47 @@
+service: sls-block-scanner
+
+package:
+  exclude:
+    - test/**
+    - secrets.json*
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: ${opt:stage}
+  region: ${self:custom.environment.region}
+  memorySize: ${self:custom.environment.memorySize}
+  role: !GetAtt LambdaServiceRole.Arn
+  timeout: 900  
+  tracing:
+    lambda: true
+  environment:
+    CONTRACT_ADDRESS: ${self:custom.environment.CONTRACT_ADDRESS}
+    DEPLOYER_KEY: ${self:custom.environment.DEPLOYER_KEY}
+    NETWORK_URL: ${self:custom.environment.NETWORK_URL}
+
+custom:
+  environment: ${file(./secrets.json):${opt:stage}}
+  stackName: ${self:service}-${opt:stage}
+
+functions:
+  blockScanner:
+    handler: functions/block-scanner.handler
+
+resources:
+  Resources:
+    LambdaServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Ref AWS::StackName
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - sts:AssumeRole

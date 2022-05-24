@@ -25,6 +25,12 @@ deploy your smart contracts:
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
+Test the contracts locally first:
+
+```sh
+npx hardhat test
+```
+
 Finally, we can run start the frontend with:
 
 ```sh
