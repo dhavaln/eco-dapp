@@ -1,7 +1,8 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
+require("hardhat-gas-reporter");
 
-const { API_URL, PRIVATE_KEY, ETHERSCAN_KEY } = require('./secrets.json');
+const { API_URL, PRIVATE_KEY, ETHERSCAN_KEY, COINMARKETCAP_KEY } = require('./secrets.json');
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -28,6 +29,13 @@ module.exports = {
       accounts: [PRIVATE_KEY]
     }
   },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 21,
+    showTimeSpent: true,
+    url: 'http://localhost:8545',
+    coinmarketcap: COINMARKETCAP_KEY
+  },  
   etherscan: {
     apiKey: ETHERSCAN_KEY
   },
