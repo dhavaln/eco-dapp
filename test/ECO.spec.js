@@ -27,7 +27,8 @@ describe("ECO Tests", function () {
 
       mainAcc = accounts[0];
       companyAAcc = accounts[1];      
-      memberAAcc = accounts[2];      
+      memberAAcc = accounts[2];
+      companyBAcc = accounts[3];
       companyAERC = undefined;
       vestingWallet = undefined;
 
@@ -94,11 +95,11 @@ describe("ECO Tests", function () {
         expect(allotment.isComplete).equal(false);
       });
 
-      it('should wait for vesting time', async function(){
-        await delay(6 * 1000);
+      it('should wait for vesting time', async function(){        
+        await ethers.provider.send("evm_increaseTime", [6]);
       });
 
-      it("test vesting schedule", async function() {
+      it("release vesting tokens for member", async function() {
         const VestingManager = await ethers.getContractFactory("VestingManager");
         const vestingManager = await VestingManager.attach(vestingWallet);
         
@@ -117,12 +118,44 @@ describe("ECO Tests", function () {
         expect(allotment.isComplete).equal(false);
       });
 
+      it('should wait for vesting time', async function(){        
+        await ethers.provider.send("evm_increaseTime", [12]);
+      });
+
+      it("release remaining tokens for member", async function() {
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
+        
+        await expect(vestingManager.connect(companyAAcc).releaseTokens(memberAAcc.address))
+        .to.emit(vestingManager, "MemberVestingComplete")
+        .withArgs(memberAAcc.address, 1000);
+      });
+
+      it("let member check the final status of his allotment", async function(){        
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
+
+        let allotment = await vestingManager.connect(memberAAcc).getAllotment();
+        expect(allotment.totalTokensAllotted).equal(0);
+        expect(allotment.totalTokensTransferred).equal(1000);
+        expect(allotment.isComplete).equal(true);
+      });
+
       it("validate total members allocated in company A", async function(){
         const VestingManager = await ethers.getContractFactory("VestingManager");
         const vestingManager = await VestingManager.attach(vestingWallet);
 
         let allMembers = await vestingManager.connect(companyAAcc).getAllotedMembers();
         expect(allMembers.length).to.equal(1);
-      });      
+      });
+
+      it("validate that only owner can run transactions on vesting wallet", async function() {
+        const VestingManager = await ethers.getContractFactory("VestingManager");
+        const vestingManager = await VestingManager.attach(vestingWallet);
+        
+        await expect(
+          vestingManager.connect(companyBAcc).releaseTokens(memberAAcc.address)
+        ).to.be.reverted;
+      });
     });
 });
