@@ -284,10 +284,11 @@ export class Dapp extends React.Component {
           {
             !this.state.hasVestingWallet ?
               <div style={{ padding: '10px', textAlign: 'center'}}>
-                <img src="./eco-header.svg" width="90%"></img>
+                <img src="./eco-header.svg" width="90%"></img>                
+                <hr/>
               </div> : ''
           }
-          
+
           <div className="card-deck mb-3 text-center">              
               <div className="card mb-4 box-shadow">
                 <div className="card-header">                  
