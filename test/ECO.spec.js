@@ -95,7 +95,8 @@ describe("ECO Tests", function () {
         expect(allotment.isComplete).equal(false);
       });
 
-      it('should wait for vesting time', async function(){        
+      it('should wait for vesting time', async function(){
+        // Increase the EVM time by given seconds
         await ethers.provider.send("evm_increaseTime", [6]);
       });
 

@@ -153,11 +153,11 @@ export class Dapp extends React.Component {
     }catch(e){
       this.setState({
         messageTitle: 'Transaction Error',
-        messageText: e.data.data.message,
+        messageText: e.error.message,
         showMessageModal: true
       });
 
-      console.log(e.data.data.message);
+      console.log(e.error);
     }
   }
 
@@ -272,7 +272,7 @@ export class Dapp extends React.Component {
     // If everything is loaded, we render the application.
     return (
       <div className="container p-4">
-        <ECOHeader ecoAddress={contractAddress.ECOContract} currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 } showAllWallets={ this.showAllWallets }/>
+        <ECOHeader network={window.ethereum.networkVersion} ecoAddress={contractAddress.ECOContract} currentWallet={ this.state.selectedAddress } totalECO={ this.state.allCompanies ? this.state.allCompanies.length : 0 } showAllWallets={ this.showAllWallets }/>
 
         <CreateERC20Modal show={this.state.showERC20Modal} onClose={this.showCreateTokenPopup} onCreate={ this.createERC20Token }/>
         <CreateVestingManagerModal name={ this.state.ercCompany } erc20Address={this.state.erc20} show={this.state.showVestingManagerModal} onClose={this.showVestingManager} onCreate={this.createVestingManager} />
@@ -284,13 +284,21 @@ export class Dapp extends React.Component {
           <div className="card-deck mb-3 text-center">              
               <div className="card mb-4 box-shadow">
                 <div className="card-header">                  
-                  <h4 className="my-0 font-weight-normal">Register Your ERC20 Tokens</h4>
+                  <h4 className="my-0 font-weight-normal">
+                  {
+                    !this.state.hasERC20 ? 'Register ERC20 Tokens' : 'ERC20 Token'
+                  }
+                  </h4>
                 </div>              
                 <div className="card-body">
+                  <div className="alert alert-primary">
+                    An ERC20 Tokens hold the total amount of tokens in circulation. You can have 100, 1,000 or 1,000,000 tokens in circulation. Part of vesting process, you can only spend the un-used tokens.
+                  </div>
+
                   {
                     !this.state.hasERC20 
                       ? <ul className="list-unstyled mt-3 mb-4"> 
-                          <li>Don't have your company tokens on Blockchain yet!! We can help you create and deploy your company tokens transparently. </li>
+                          <li>If you don't have any ERC20 tokens in circulation yet, we can help you create and deploy your own Token on-chain wihtout going through any technical process.</li>
                         </ul>
                       : <ul className="list-unstyled mt-3 mb-4">                        
                           <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
@@ -308,7 +316,7 @@ export class Dapp extends React.Component {
                     !this.state.hasERC20 
                       ? <div>
                           <ul className="list-unstyled mt-3 mb-4"> 
-                            <li>Already deployed your tokens? Enter your Token Symbol to check.</li>
+                            <li>Already created your tokens through ECO? Enter your token symbol to fetch the address.</li>
                           </ul>
 
                           <form>
@@ -334,7 +342,12 @@ export class Dapp extends React.Component {
                     { !this.state.hasVestingWallet ? 'Setup Vesting Wallet' : 'Your Vesting Wallet' }
                   </h4>
                 </div>
-                <div className="card-body">                  
+                <div className="card-body">
+
+                  <div className="alert alert-primary">
+                    Vesting Wallet works as a custodian and scheduler for the token transfer. If you want to allocate X number of tokens to a member at a given point in time, you will have to transfer those X tokens first to the Vesting Wallet. This process ensures that the ERC20 can not over-allocate tokens to different addresses.
+                  </div>
+
                   {
                     !this.state.hasVestingWallet 
                     ? <ul className="list-unstyled mt-3 mb-4">
@@ -343,8 +356,8 @@ export class Dapp extends React.Component {
                     : <ul className="list-unstyled mt-3 mb-4">
                         <WalletAddress address={ this.state.vestingWalletAddr } label={"Address"} />
                         <li>Status: <b>{ this.state.vestingActive ? 'ACTIVE' : 'INACTIVE' }</b></li>
-                        <li style={{color: "red"}}>Tokens In Wallet: <b>{ this.state.vestingWalletTokenBalance }</b></li>
-                        <li style={{color: "red"}}>Tokens In Vesting: <b>{ this.state.vestingWalletTokenBalance }</b></li>
+                        <li style={{color: "red"}}>Remaining Tokens In Wallet: <b>{ this.state.vestingWalletTokenBalance }</b></li>
+                        {/* <li style={{color: "red"}}>Tokens In Vesting: <b>{ this.state.vestingWalletTokenBalance }</b></li> */}
                       </ul>
                   }
 
@@ -368,15 +381,20 @@ export class Dapp extends React.Component {
                                               <b>Member Address</b>
                                             </td>
                                             <td>
-                                              <WalletAddress address={member.address} label={ "" }/> ({ !member.isComplete ? "ACTIVE" : "COMPLETED"})
+                                              <WalletAddress address={member.address} label={ "" }/>
                                             </td>
                                           </tr>
                                           <tr>
                                             <td>
-                                              Tokens Allotted
+                                              Pending Tokens
                                             </td>
                                             <td>
-                                              <b>{member.totalTokensAllotted} ({(member.totalTokensAllotted * 100 / this.state.ercTotalSupply).toFixed(2)}%)</b>
+                                              <b>
+                                                { member.isComplete ? 
+                                                    <span style={{color: 'green'}}>Vesting Completed</span> : 
+                                                    <span>{member.totalTokensAllotted} ({(member.totalTokensAllotted * 100 / this.state.ercTotalSupply).toFixed(2)}%)</span>
+                                                }
+                                              </b>
                                             </td>
                                           </tr>
                                           <tr>
@@ -387,14 +405,18 @@ export class Dapp extends React.Component {
                                               <b>{member.totalTokensTransferred}</b>
                                             </td>
                                           </tr>
-                                          <tr>
-                                            <td>
-                                              Next Release
-                                            </td>
-                                            <td>
-                                              <b>{ member.nextRelease.toDateString() }</b>  { !member.isComplete ? <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release</button> : ''}
-                                            </td>
-                                          </tr>
+                                          {
+                                            !member.isComplete ?
+                                              <tr>
+                                                <td>
+                                                  Next Release
+                                                </td>
+                                                <td>
+                                                  <b>{ member.nextRelease.toLocaleString() }</b>  { !member.isComplete ? <button variant="success" className="btn btn-success btn-sm" onClick={() => this.releaseVestedTokens(member.address)}>Release</button> : ''}
+                                                </td>
+                                              </tr>
+                                              : ''
+                                          }                                          
                                           </tbody>
                                         </table>
                                     </td> }
@@ -416,7 +438,7 @@ export class Dapp extends React.Component {
           <footer className="pt-4 my-md-5 pt-md-5 border-top">
             <div className="row">
               <div className="col-12 col-md">                                  
-                  <small className="d-block mb-3 text-muted">DappCamp #3 May 2022 / Team ECO / <a href="https://twitter.com/haque5farazul" target="_blank">@haque5farazul</a> / <a href="https://twitter.com/sanskar_107" target="_blank">@sanskar_107</a> / <a href="https://twitter.com/bakshim" target="_blank">@bakshim</a> / <a href="https://twitter.com/dhavaln" target="_blank">@dhavaln</a></small>
+                  <small className="d-block mb-3 text-muted">Get in touch / <a href="https://twitter.com/haque5farazul" target="_blank">@haque5farazul</a> / <a href="https://twitter.com/sanskar_107" target="_blank">@sanskar_107</a> / <a href="https://twitter.com/bakshim" target="_blank">@bakshim</a> / <a href="https://twitter.com/dhavaln" target="_blank">@dhavaln</a></small>
               </div>
             </div>
           </footer>
@@ -584,6 +606,8 @@ export class Dapp extends React.Component {
             nextRelease = new Date(detail[5] * 1000);
           }
         });
+
+        console.log(nextRelease);
 
         return {
           address: member,
