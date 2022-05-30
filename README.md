@@ -1,5 +1,7 @@
-# DappCamp Cohort 3 - ECO DApp
+# ECO DApp
 Solidity DApp to Share Company Coins to Employees with Periodic Vesting Mechanism
+
+![Architecture](arch.png)
 
 ## Quick start
 

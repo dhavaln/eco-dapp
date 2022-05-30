@@ -280,7 +280,15 @@ export class Dapp extends React.Component {
         <TokanTransferModal show={this.state.showTokenTransferModal} onClose={this.showTokanTransfer} onCreate={ this.initTokenTransfer} />
         <MessageModal show={this.state.showMessageModal} title={ this.state.messageTitle} message={ this.state.messageText} onClose={this.showMessageModal}/>
 
-        <div className="container">          
+        <div className="container">
+          {
+            !this.state.hasVestingWallet ?
+              <div style={{ padding: '10px', textAlign: 'center'}}>
+                <img src="./eco-header.svg" width="90%"></img>                
+                <hr/>
+              </div> : ''
+          }
+
           <div className="card-deck mb-3 text-center">              
               <div className="card mb-4 box-shadow">
                 <div className="card-header">                  
@@ -292,13 +300,13 @@ export class Dapp extends React.Component {
                 </div>              
                 <div className="card-body">
                   <div className="alert alert-primary">
-                    An ERC20 Tokens hold the total amount of tokens in circulation. You can have 100, 1,000 or 1,000,000 tokens in circulation. Part of vesting process, you can only spend the un-used tokens.
+                    An ERC20 Token contract holds the total amount of tokens in circulation. You can have 100, 1,000 or 1,000,000 tokens in circulation. Part of vesting process, you can only spend the un-used tokens.
                   </div>
 
                   {
                     !this.state.hasERC20 
                       ? <ul className="list-unstyled mt-3 mb-4"> 
-                          <li>If you don't have any ERC20 tokens in circulation yet, we can help you create and deploy your own Token on-chain wihtout going through any technical process.</li>
+                          <li>If you don't have an ERC20 token contract on chain yet, we can help you create and deploy your own Token Contract without going through any technical process.</li>
                         </ul>
                       : <ul className="list-unstyled mt-3 mb-4">                        
                           <li><WalletAddress address={ this.state.erc20 } label={"Token Address"}/></li>
@@ -435,13 +443,13 @@ export class Dapp extends React.Component {
             </div>
           </div>
 
-          <footer className="pt-4 my-md-5 pt-md-5 border-top">
+          <div className="pt-3 my-md-3 pt-md-3 border-top">
             <div className="row">
               <div className="col-12 col-md">                                  
-                  <small className="d-block mb-3 text-muted">Get in touch / <a href="https://twitter.com/haque5farazul" target="_blank">@haque5farazul</a> / <a href="https://twitter.com/sanskar_107" target="_blank">@sanskar_107</a> / <a href="https://twitter.com/bakshim" target="_blank">@bakshim</a> / <a href="https://twitter.com/dhavaln" target="_blank">@dhavaln</a></small>
+                <small className="d-block mb-3 text-muted"><a href="https://docs.google.com/document/d/1x1sZSLFmhvrtpAxK9tsguhjt-y-VMxNBtZVKxQYcvpc/edit#" target="_blank">ECO Whitepaper</a> / Get in touch / <a href="https://twitter.com/haque5farazul" target="_blank">@haque5farazul</a> / <a href="https://twitter.com/sanskar_107" target="_blank">@sanskar_107</a> / <a href="https://twitter.com/bakshim" target="_blank">@bakshim</a> / <a href="https://twitter.com/dhavaln" target="_blank">@dhavaln</a></small>
               </div>
             </div>
-          </footer>
+          </div>
       </div>
     );
   }
