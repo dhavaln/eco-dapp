@@ -17,7 +17,7 @@ export function ECOHeader({ network, currentWallet, totalECO, showAllWallets, ec
               ECO - Employee Coin Ownership
             </h1>
             <hr/>
-            <div class="alert alert-primary" role="alert">
+            <div className="alert alert-primary" role="alert">
               This contract is LIVE on Rinkeby testnet. Please check your MetaMask account before making any transactions.
             </div>
             <div className="row">
